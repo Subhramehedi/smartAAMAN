@@ -808,7 +808,8 @@
 
         <select id="floorSelect">
           <option value="">ফ্লোর নির্বাচন করুন</option>
-          <option value="1">ফ্লোর 1 (Room 10-105)</option>
+          <option value="old">Old Building (Room 14,15 etc.)</option>
+          <option value="1">ফ্লোর 1 (Room 101-105)</option>
           <option value="2">ফ্লোর 2 (Room 201-205)</option>
           <option value="3">ফ্লোর 3 (Room 301-305)</option>
           <option value="4">ফ্লোর 4 (Room 401-404)</option>
@@ -971,7 +972,7 @@
 
       // Google Apps Script Web App URL (Replace with your deployed URL)
       const WEB_APP_URL =
-        "https://script.google.com/macros/s/AKfycbzV0gM3OPP9JfiB1m2xWyN1V6jkinGifkJpr8d3gMm5o2G86aA87vRxsh0pmLUSN7aUtw/exec"; // REPLACE WITH YOUR DEPLOYED WEB APP URL
+        "https://script.google.com/macros/s/AKfycbzIuy4NaSwsh0OQa_bt2wKgHCqqh7AkHJjhGJchtWkk6G1VQg5JNWalJZNXbO1RqbBq6w/exec"; // REPLACE WITH YOUR DEPLOYED WEB APP URL
 
       // This will now be populated dynamically
       let studentsData = {};
@@ -987,14 +988,7 @@
       // The floorRoomMapping is no longer strictly needed if studentsData is dynamic,
       // but it can be used for the dropdown options.
       // The actual floorRooms will be derived from the keys of the fetched studentsData.
-      const floorRoomMapping = {
-        1: ["101", "102", "103", "104", "105"],
-        2: ["201", "202", "203", "204", "205"],
-        3: ["301", "302", "303", "304", "305"],
-        4: ["401", "402", "403", "404"],
-        5: ["501", "502", "503", "504", "505"],
-        6: ["601", "602", "603", "604", "605"],
-      };
+      // Removed floorRoomMapping as it's now dynamic from fetched data
 
       // --- Login Screen Functions ---
 
@@ -1063,9 +1057,16 @@
           }
 
           studentsData = data; // Update the global studentsData object
-          floorRooms = Object.keys(studentsData).sort(
-            (a, b) => parseInt(a) - parseInt(b)
-          ); // Get sorted room numbers for the floor
+          // Sort room numbers numerically, handling 'old' as a special case if needed,
+          // but for now, just sort numerically for other floors.
+          // For 'old' building, rooms like 14, 15 will be sorted as strings.
+          floorRooms = Object.keys(studentsData).sort((a, b) => {
+            if (a === "old" || b === "old") {
+              // Handle 'old' if it somehow appears as a room key
+              return a.localeCompare(b);
+            }
+            return parseInt(a) - parseInt(b);
+          });
 
           if (floorRooms.length === 0) {
             alert("এই ফ্লোরের জন্য কোনো রুম ডেটা পাওয়া যায়নি।");
@@ -1396,7 +1397,8 @@
           .padStart(2, "0")}-${today.getFullYear()}`;
 
         const attendanceData = [];
-        const absentStudents = [];
+        // The absentStudents array will now be calculated on the server-side
+        // based on the full student list for the floor and the submitted attendance.
 
         floorRooms.forEach((room) => {
           if (studentsData[room]) {
@@ -1410,9 +1412,6 @@
                 class: student.class,
                 status: status,
               });
-              if (status === "absent") {
-                absentStudents.push(`${student.reg} - ${student.name}`);
-              }
             });
           }
         });
@@ -1422,7 +1421,7 @@
           floor: selectedFloor,
           date: dateString,
           attendance: attendanceData,
-          absentStudents: absentStudents,
+          // absentStudents is no longer sent from client, calculated on server
         };
 
         try {
