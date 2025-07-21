@@ -945,7 +945,6 @@
 
     <script>
       const staffCredentials = {
-        
         staff02: { name: "Saddam Khan", password: "7548976846" },
         staff03: { name: "Safiqul Alam", password: "9732429502" },
         staff04: { name: "Sk Atikur Rahaman", password: "9775256530" },
@@ -1249,7 +1248,11 @@
             <div class="student-info">
               <div>
                 <div class="student-name">${student.name}</div>
-                <div class="student-reg">Reg: ${student.reg}</div>
+                  <div class="student-reg">Reg: ${student.reg} | Class: ${
+            student.class
+          } 
+                  </div>
+
               </div>
               <div class="attendance-status">
                 <div class="status-indicator ${
