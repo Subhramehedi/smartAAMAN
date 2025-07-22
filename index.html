@@ -995,7 +995,7 @@
 
       // Google Apps Script Web App URL (Replace with your deployed URL)
       const WEB_APP_URL =
-        "https://script.google.com/macros/s/AKfycbzIuy4NaSwsh0OQa_bt2wKgHCqqh7AkHJjhGJchtWkk6G1VQg5JNWalJZNXbO1RqbBq6w/exec"; // REPLACE WITH YOUR DEPLOYED WEB APP URL
+        "https://script.google.com/macros/s/AKfycbyJXalFD-VUNSa8s5HhiOLVgC0VKHSbStlD5hXsfk2mUcEqIN1e-taX-5X44p916KRy6Q/exec"; // REPLACE WITH YOUR DEPLOYED WEB APP URL
 
       // This will now be populated dynamically
       let studentsData = {};
@@ -1007,6 +1007,7 @@
       let highlightedStudent = null;
       let staffName = "";
       let selectedFloor = "";
+      let serverDate = ""; // NEW: Variable to store date from server
 
       // The floorRoomMapping is no longer strictly needed if studentsData is dynamic,
       // but it can be used for the dropdown options.
@@ -1065,22 +1066,22 @@
 
         try {
           // Fetch student data for the selected floor
-          const response = await fetch(
+          const studentResponse = await fetch(
             `${WEB_APP_URL}?action=getStudentsByFloor&floor=${selectedFloor}`
           );
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+          if (!studentResponse.ok) {
+            throw new Error(`HTTP error! status: ${studentResponse.status}`);
           }
-          const data = await response.json();
+          const studentData = await studentResponse.json();
 
-          if (Object.keys(data).length === 0) {
+          if (Object.keys(studentData).length === 0) {
             alert("এই ফ্লোরের জন্য কোনো শিক্ষার্থীর ডেটা পাওয়া যায়নি।");
             loadingOverlay.classList.remove("show");
             loginButton.disabled = false;
             return;
           }
 
-          studentsData = data; // Update the global studentsData object
+          studentsData = studentData; // Update the global studentsData object
           // Sort room numbers numerically, handling 'old' as a special case if needed,
           // but for now, just sort numerically for other floors.
           // For 'old' building, rooms like 14, 15 will be sorted as strings.
@@ -1099,15 +1100,26 @@
             return;
           }
 
+          // NEW: Fetch current date from server
+          const dateResponse = await fetch(
+            `${WEB_APP_URL}?action=getCurrentDate`
+          );
+          if (!dateResponse.ok) {
+            throw new Error(`HTTP error! status: ${dateResponse.status}`);
+          }
+          const dateData = await dateResponse.json();
+          serverDate = dateData.date; // Store the fetched date
+
           document.getElementById("loginScreen").classList.add("hidden");
           document
             .getElementById("attendanceSystem")
             .classList.remove("hidden");
           initAttendanceSystem();
         } catch (error) {
-          console.error("Error fetching student data:", error);
+          console.error("Error fetching data:", error);
           alert(
-            "শিক্ষার্থীর ডেটা লোড করতে ব্যর্থ হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।"
+            "ডেটা লোড করতে ব্যর্থ হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।\n" +
+              error.message
           );
         } finally {
           loadingOverlay.classList.remove("show");
@@ -1130,21 +1142,25 @@
         });
       }
 
-      // Initialize date selectors (now displays current date only)
+      // Initialize date selectors (now displays current date from server)
       function initializeDateSelectors() {
         const daySelect = document.getElementById("daySelect");
         const monthSelect = document.getElementById("monthSelect");
         const yearSelect = document.getElementById("yearSelect");
 
-        const today = new Date();
-        const options = { day: "2-digit", month: "long", year: "numeric" };
-        const formattedDate = today.toLocaleDateString("en-US", options);
+        // Parse the serverDate (e.g., "25/10/2023")
+        const parts = serverDate.split("/");
+        const day = parts[0];
+        const month = parseInt(parts[1]) - 1; // Month is 0-indexed
+        const year = parts[2];
 
-        daySelect.innerHTML = `<option value="${today.getDate()}">${today.getDate()}</option>`;
+        const dateObj = new Date(year, month, day);
+
+        daySelect.innerHTML = `<option value="${day}">${day}</option>`;
         monthSelect.innerHTML = `<option value="${
-          today.getMonth() + 1
-        }">${today.toLocaleString("en-US", { month: "long" })}</option>`;
-        yearSelect.innerHTML = `<option value="${today.getFullYear()}">${today.getFullYear()}</option>`;
+          month + 1
+        }">${dateObj.toLocaleString("en-US", { month: "long" })}</option>`;
+        yearSelect.innerHTML = `<option value="${year}">${year}</option>`;
       }
 
       // Initialize room buttons for the selected floor
@@ -1417,12 +1433,8 @@
         submitBtn.textContent = "জমা হচ্ছে...";
         loadingOverlay.classList.add("show"); // Show loading overlay
 
-        const today = new Date();
-        const dateString = `${today.getDate().toString().padStart(2, "0")}-${(
-          today.getMonth() + 1
-        )
-          .toString()
-          .padStart(2, "0")}-${today.getFullYear()}`;
+        // Use the serverDate fetched during login
+        const dateToSubmit = serverDate;
 
         const attendanceData = [];
         // The absentStudents array will now be calculated on the server-side
@@ -1447,7 +1459,7 @@
         const payload = {
           staffName: staffName,
           floor: selectedFloor,
-          date: dateString,
+          date: dateToSubmit, // Use the server-fetched date here
           attendance: attendanceData,
           // absentStudents is no longer sent from client, calculated on server
         };
@@ -1489,6 +1501,7 @@
             selectedFloor = "";
             floorRooms = []; // Clear floorRooms
             studentsData = {}; // Clear fetched student data
+            serverDate = ""; // Clear server date
             updateProgress(); // Reset progress display
           }, 500); // Shortened this timeout as the overlay hides first
         } catch (error) {
