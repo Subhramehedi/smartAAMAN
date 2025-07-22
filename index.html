@@ -768,6 +768,26 @@
         font-weight: bold;
         text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
       }
+
+      /* NEW: CSS for the circular rotating ring */
+      .loading-ring {
+        border: 8px solid rgba(255, 255, 255, 0.3); /* Light border */
+        border-top: 8px solid #ffd700; /* Gold color for the top */
+        border-radius: 50%;
+        width: 50px; /* Size of the ring */
+        height: 50px; /* Size of the ring */
+        animation: spin 1s linear infinite; /* Spin animation */
+        margin-top: 20px; /* Space above the ring */
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
       /* --- END NEW: Loading Overlay CSS (Modified) --- */
     </style>
   </head>
@@ -939,14 +959,15 @@
             class="loading-logo"
           />
         </div>
-        <p class="loading-text">অ্যাটেনডেন্স জমা হচ্ছে...</p>
+        <p class="loading-text">Loading...</p>
+        <div class="loading-ring"></div>
+        <!-- NEW: Circular loading ring -->
       </div>
     </div>
     <!-- --- END NEW: Loading Overlay HTML (Modified) --- -->
 
     <script>
       const staffCredentials = {
-        
         staff02: { name: "Saddam Khan", password: "7548976846" },
         staff03: { name: "Safiqul Alam", password: "9732429502" },
         staff04: { name: "Sk Atikur Rahaman", password: "9775256530" },
@@ -1034,6 +1055,7 @@
 
         // Show loading overlay
         const loadingOverlay = document.getElementById("loadingOverlay");
+        loadingOverlay.classList.remove("hidden");
         loadingOverlay.classList.add("show");
         loginButton.disabled = true; // Disable button during loading
 
@@ -1173,9 +1195,9 @@
           const resultItem = document.createElement("div");
           resultItem.className = "search-result-item";
           resultItem.innerHTML = `
-            <div class="search-result-name">${student.name}</div>
-            <div class="search-result-details">Reg: ${student.reg} | Room: ${student.room} | Class: ${student.class}</div>
-          `;
+                  <div class="search-result-name">${student.name}</div>
+                  <div class="search-result-details">Reg: ${student.reg} | Room: ${student.room} | Class: ${student.class}</div>
+                `;
           resultItem.onclick = () => selectStudent(student);
           searchResults.appendChild(resultItem);
         });
@@ -1248,39 +1270,43 @@
           }
 
           studentCard.innerHTML = `
-            <div class="student-info">
-              <div>
-                <div class="student-name">${student.name}</div>
-                  <div class="student-reg">Reg: ${student.reg} | Class: ${
+                  <div class="student-info">
+                    <div>
+                      <div class="student-name">${student.name}</div>
+                        <div class="student-reg">Reg: ${student.reg} | Class: ${
             student.class
-          } 
-                  </div>
+          }
+                        </div>
 
-              </div>
-              <div class="attendance-status">
-                <div class="status-indicator ${
-                  attendanceStatus === "present"
-                    ? "status-present"
-                    : "status-absent"
-                }">
-                  ${attendanceStatus === "present" ? "✓ হাজির" : "✗ অনুপস্থিত"}
-                </div>
-                <!-- Added blast-effect class to toggle button -->
-                <button class="toggle-btn blast-effect ${
-                  attendanceStatus === "present"
-                    ? "toggle-absent"
-                    : "toggle-present"
-                }"
-                        onclick="toggleAttendance('${student.reg}')">
-                  ${
-                    attendanceStatus === "present"
-                      ? "অনুপস্থিত করুন"
-                      : "হাজির করুন"
-                  }
-                </button>
-              </div>
-            </div>
-          `;
+                    </div>
+                    <div class="attendance-status">
+                      <div class="status-indicator ${
+                        attendanceStatus === "present"
+                          ? "status-present"
+                          : "status-absent"
+                      }">
+                        ${
+                          attendanceStatus === "present"
+                            ? "✓ হাজির"
+                            : "✗ অনুপস্থিত"
+                        }
+                      </div>
+                      <!-- Added blast-effect class to toggle button -->
+                      <button class="toggle-btn blast-effect ${
+                        attendanceStatus === "present"
+                          ? "toggle-absent"
+                          : "toggle-present"
+                      }"
+                              onclick="toggleAttendance('${student.reg}')">
+                        ${
+                          attendanceStatus === "present"
+                            ? "অনুপস্থিত করুন"
+                            : "হাজির করুন"
+                        }
+                      </button>
+                    </div>
+                  </div>
+                `;
 
           studentListContainer.appendChild(studentCard);
         });
