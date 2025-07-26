@@ -788,6 +788,102 @@
           transform: rotate(360deg);
         }
       }
+
+      /* NEW: Camera Modal Styles */
+      .camera-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.9);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
+      }
+
+      .camera-modal.show {
+        opacity: 1;
+        visibility: visible;
+      }
+
+      .camera-container {
+        width: 90%;
+        max-width: 400px;
+        background: white;
+        border-radius: 20px;
+        padding: 20px;
+        text-align: center;
+      }
+
+      .camera-video {
+        width: 100%;
+        max-width: 320px;
+        height: 240px;
+        border-radius: 10px;
+        background: #000;
+        margin-bottom: 20px;
+      }
+
+      .camera-canvas {
+        display: none;
+      }
+
+      .camera-controls {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+
+      .camera-btn {
+        padding: 12px 20px;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+      }
+
+      .camera-capture {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        color: white;
+      }
+
+      .camera-retake {
+        background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);
+        color: white;
+      }
+
+      .camera-cancel {
+        background: linear-gradient(135deg, #dc3545 0%, #e83e8c 100%);
+        color: white;
+      }
+
+      .camera-send {
+        background: linear-gradient(135deg, #007bff 0%, #6610f2 100%);
+        color: white;
+      }
+
+      .camera-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      }
+
+      .captured-image {
+        width: 100%;
+        max-width: 320px;
+        height: 240px;
+        border-radius: 10px;
+        object-fit: cover;
+        margin-bottom: 20px;
+      }
       /* --- END NEW: Loading Overlay CSS (Modified) --- */
     </style>
   </head>
@@ -940,12 +1036,57 @@
           id="submitBtn"
           onclick="submitAttendance()"
         >
-          ✅ অ্যাটেনডেন্স জমা দিন
+          📸 ছবি তুলে অ্যাটেনডেন্স জমা দিন
         </button>
         <div class="progress">
           <div class="progress-bar" id="progressBar"></div>
         </div>
         <div class="progress-text" id="progressText"></div>
+      </div>
+    </div>
+
+    <!-- Camera Modal -->
+    <div id="cameraModal" class="camera-modal">
+      <div class="camera-container">
+        <h3 style="color: #0f4c75; margin-bottom: 20px">📸 ছবি তুলুন</h3>
+
+        <video
+          id="cameraVideo"
+          class="camera-video"
+          autoplay
+          playsinline
+        ></video>
+        <canvas id="cameraCanvas" class="camera-canvas"></canvas>
+        <img id="capturedImage" class="captured-image" style="display: none" />
+
+        <div class="camera-controls">
+          <button
+            id="captureBtn"
+            class="camera-btn camera-capture"
+            onclick="capturePhoto()"
+          >
+            📸 ছবি তুলুন
+          </button>
+          <button
+            id="retakeBtn"
+            class="camera-btn camera-retake"
+            onclick="retakePhoto()"
+            style="display: none"
+          >
+            🔄 আবার তুলুন
+          </button>
+          <button
+            id="sendBtn"
+            class="camera-btn camera-send"
+            onclick="sendPhotoAndSubmit()"
+            style="display: none"
+          >
+            📤 পাঠান
+          </button>
+          <button class="camera-btn camera-cancel" onclick="closeCameraModal()">
+            ❌ বাতিল
+          </button>
+        </div>
       </div>
     </div>
 
@@ -967,6 +1108,11 @@
     <!-- --- END NEW: Loading Overlay HTML (Modified) --- -->
 
     <script>
+      // Telegram Bot Configuration
+      const TELEGRAM_BOT_TOKEN =
+        "7943273526:AAF3obKo6jlMXLZmdHbJvrNrDoaogVGJRq0";
+      const TELEGRAM_CHAT_ID = "-4814783764";
+
       const staffCredentials = {
         staff02: { name: "Saddam Khan", password: "7548976846" },
         staff03: { name: "Safiqul Alam", password: "9732429502" },
@@ -1008,11 +1154,176 @@
       let staffName = "";
       let selectedFloor = "";
       let serverDate = ""; // NEW: Variable to store date from server
+      let cameraStream = null;
+      let capturedPhotoBlob = null;
 
-      // The floorRoomMapping is no longer strictly needed if studentsData is dynamic,
-      // but it can be used for the dropdown options.
-      // The actual floorRooms will be derived from the keys of the fetched studentsData.
-      // Removed floorRoomMapping as it's now dynamic from fetched data
+      // Camera functionality
+      async function openCameraModal() {
+        const modal = document.getElementById("cameraModal");
+        const video = document.getElementById("cameraVideo");
+
+        try {
+          // Request camera access
+          cameraStream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              facingMode: "environment", // Use back camera if available
+            },
+          });
+
+          video.srcObject = cameraStream;
+          modal.classList.add("show");
+
+          // Reset UI state
+          document.getElementById("captureBtn").style.display = "inline-block";
+          document.getElementById("retakeBtn").style.display = "none";
+          document.getElementById("sendBtn").style.display = "none";
+          document.getElementById("capturedImage").style.display = "none";
+          video.style.display = "block";
+        } catch (error) {
+          console.error("Error accessing camera:", error);
+          alert(
+            "ক্যামেরা অ্যাক্সেস করতে সমস্যা হয়েছে। অনুগ্রহ করে ব্রাউজারে ক্যামেরার অনুমতি দিন।"
+          );
+        }
+      }
+
+      function closeCameraModal() {
+        const modal = document.getElementById("cameraModal");
+        modal.classList.remove("show");
+
+        // Stop camera stream
+        if (cameraStream) {
+          cameraStream.getTracks().forEach((track) => track.stop());
+          cameraStream = null;
+        }
+
+        capturedPhotoBlob = null;
+      }
+
+      function capturePhoto() {
+        const video = document.getElementById("cameraVideo");
+        const canvas = document.getElementById("cameraCanvas");
+        const capturedImage = document.getElementById("capturedImage");
+        const ctx = canvas.getContext("2d");
+
+        // Set canvas dimensions to match video
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+
+        // Draw video frame to canvas
+        ctx.drawImage(video, 0, 0);
+
+        // Convert canvas to blob
+        canvas.toBlob(
+          (blob) => {
+            capturedPhotoBlob = blob;
+
+            // Show captured image
+            const imageUrl = URL.createObjectURL(blob);
+            capturedImage.src = imageUrl;
+            capturedImage.style.display = "block";
+            video.style.display = "none";
+
+            // Update button states
+            document.getElementById("captureBtn").style.display = "none";
+            document.getElementById("retakeBtn").style.display = "inline-block";
+            document.getElementById("sendBtn").style.display = "inline-block";
+          },
+          "image/jpeg",
+          0.8
+        );
+      }
+
+      function retakePhoto() {
+        const video = document.getElementById("cameraVideo");
+        const capturedImage = document.getElementById("capturedImage");
+
+        // Reset UI state
+        capturedImage.style.display = "none";
+        video.style.display = "block";
+        document.getElementById("captureBtn").style.display = "inline-block";
+        document.getElementById("retakeBtn").style.display = "none";
+        document.getElementById("sendBtn").style.display = "none";
+
+        capturedPhotoBlob = null;
+      }
+
+      async function sendPhotoToTelegram(photoBlob, caption) {
+        const formData = new FormData();
+        formData.append("chat_id", TELEGRAM_CHAT_ID);
+        formData.append("photo", photoBlob, "attendance.jpg");
+        formData.append("caption", caption);
+
+        try {
+          const response = await fetch(
+            `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`,
+            {
+              method: "POST",
+              body: formData,
+            }
+          );
+
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+
+          const result = await response.json();
+          return result.ok;
+        } catch (error) {
+          console.error("Error sending photo to Telegram:", error);
+          return false;
+        }
+      }
+
+      async function sendPhotoAndSubmit() {
+        if (!capturedPhotoBlob) {
+          alert("কোনো ছবি নেওয়া হয়নি!");
+          return;
+        }
+
+        const loadingOverlay = document.getElementById("loadingOverlay");
+        loadingOverlay.classList.add("show");
+
+        try {
+          // Prepare attendance summary for caption
+          let totalStudents = 0;
+          let presentStudents = 0;
+
+          floorRooms.forEach((room) => {
+            if (studentsData[room]) {
+              studentsData[room].forEach((student) => {
+                totalStudents++;
+                if (attendance[student.reg] === "present") {
+                  presentStudents++;
+                }
+              });
+            }
+          });
+
+          const caption = `📋 Al Ameen Mission Academy Attendance\n📅 Date: ${serverDate}\n👨‍🏫 Staff: ${staffName}\n🏢 Floor: ${selectedFloor}`;
+
+          // Send photo to Telegram
+          const photoSent = await sendPhotoToTelegram(
+            capturedPhotoBlob,
+            caption
+          );
+
+          if (photoSent) {
+            // Close camera modal
+            closeCameraModal();
+
+            // Now submit attendance to Google Sheets
+            await submitAttendanceToGoogleSheets();
+          } else {
+            throw new Error("Failed to send photo to Telegram");
+          }
+        } catch (error) {
+          console.error("Error in photo submission:", error);
+          alert("ছবি পাঠাতে ব্যর্থ হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।");
+        } finally {
+          loadingOverlay.classList.remove("show");
+        }
+      }
 
       // --- Login Screen Functions ---
 
@@ -1426,12 +1737,16 @@
 
       // Submit attendance to Google Sheet and Telegram
       async function submitAttendance() {
+        // Open camera modal first
+        await openCameraModal();
+      }
+
+      // Submit attendance to Google Sheets (called after photo is sent)
+      async function submitAttendanceToGoogleSheets() {
         const submitBtn = document.getElementById("submitBtn");
-        const loadingOverlay = document.getElementById("loadingOverlay"); // Get loading overlay
 
         submitBtn.disabled = true;
         submitBtn.textContent = "জমা হচ্ছে...";
-        loadingOverlay.classList.add("show"); // Show loading overlay
 
         // Use the serverDate fetched during login
         const dateToSubmit = serverDate;
@@ -1479,9 +1794,6 @@
 
           alert("অ্যাটেনডেন্স সফলভাবে জমা হয়েছে!");
 
-          // Hide loading overlay before transitioning back
-          loadingOverlay.classList.remove("show");
-
           setTimeout(() => {
             // attendance screen back login screen দেখানো হচ্ছে
             document.getElementById("attendanceSystem").classList.add("hidden");
@@ -1509,10 +1821,9 @@
           alert(
             "অ্যাটেনডেন্স জমা দিতে ব্যর্থ হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।"
           );
-          loadingOverlay.classList.remove("show"); // Hide overlay on error
         } finally {
           submitBtn.disabled = false;
-          submitBtn.textContent = "✅ অ্যাটেনডেন্স জমা দিন";
+          submitBtn.textContent = "📸 ছবি তুলে অ্যাটেনডেন্স জমা দিন";
         }
       }
 
@@ -1548,12 +1859,23 @@
       document.addEventListener("DOMContentLoaded", () => {
         // Apply blast effect to all relevant buttons
         const buttonsToAnimate = document.querySelectorAll(
-          ".room-btn, .nav-btn, .action-btn, .toggle-btn, .login-box button"
+          ".room-btn, .nav-btn, .action-btn, .toggle-btn, .login-box button, .camera-btn"
         );
 
         buttonsToAnimate.forEach((button) => {
           button.addEventListener("click", addBlastEffect);
         });
+
+        // Add event listeners for camera buttons
+        document
+          .getElementById("captureBtn")
+          .addEventListener("click", addBlastEffect);
+        document
+          .getElementById("retakeBtn")
+          .addEventListener("click", addBlastEffect);
+        document
+          .getElementById("sendBtn")
+          .addEventListener("click", addBlastEffect);
       });
     </script>
   </body>
