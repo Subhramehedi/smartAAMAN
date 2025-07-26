@@ -1430,9 +1430,10 @@
 🏢 Floor: ${selectedFloorLabel}
 👥 মোট শিক্ষার্থী: ${totalStudents} জন
 ✅ হাজির: ${presentStudents} জন
-❌ অনুপস্থিত: ${absentStudents} জন
+❌ অনুপস্থিত: ${absentStudents} জন${absentStudentsText}
+
 📍 Location: ${staffLocation.lat}, ${staffLocation.lon}
-📏 Distance from Academy: ${staffLocation.distance} meters${absentStudentsText}`;
+📏 Distance from Academy: ${staffLocation.distance} meters`;
 
           // Send photo to Telegram
           const photoSent = await sendPhotoToTelegram(
