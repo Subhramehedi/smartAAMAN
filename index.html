@@ -1212,7 +1212,7 @@
 
       // Google Apps Script Web App URL (Replace with your deployed URL)
       const WEB_APP_URL =
-        "https://script.google.com/macros/s/AKfycbxwdsPKUtEChMGpZke2d1-IkubFiofl0utSvEsIr0HSQnQ5SHzx9BRw3eUfVYrD5B1T/exec"; // REPLACE WITH YOUR DEPLOYED WEB APP URL
+        "https://script.google.com/macros/s/AKfycbwxM80x6P9VoahyfLk2OdopVc5JS9zgySCHae1AH6UCCpgavZZzLaO47IH1mclB2tZdtQ/exec"; // REPLACE WITH YOUR DEPLOYED WEB APP URL
 
       // This will now be populated dynamically
       let studentsData = {};
@@ -1260,6 +1260,8 @@
 
       function closeCameraModal() {
         const modal = document.getElementById("cameraModal");
+        const submitBtn = document.getElementById("submitBtn");
+
         modal.classList.remove("show");
 
         // Stop camera stream
@@ -1269,6 +1271,10 @@
         }
 
         capturedPhotoBlob = null;
+
+        // Button reset করুন (যদি modal বন্ধ করা হয় cancel দিয়ে)
+        submitBtn.disabled = false;
+        submitBtn.textContent = "📸 ছবি তুলে অ্যাটেনডেন্স জমা দিন";
       }
 
       function capturePhoto() {
@@ -1357,16 +1363,30 @@
           alert("কোনো ছবি নেওয়া হয়নি!");
           return;
         }
-
         const loadingOverlay = document.getElementById("loadingOverlay");
+        const submitBtn = document.getElementById("submitBtn");
+        const cameraModal = document.getElementById("cameraModal");
+
+        // 🔄 Loading start করুন - "পাঠান" button click করার সাথে সাথেই
+        // প্রথমে camera modal বন্ধ করুন
+        cameraModal.classList.remove("show");
+
+        // তারপর loading overlay দেখান
+        loadingOverlay.classList.remove("hidden");
         loadingOverlay.classList.add("show");
+        submitBtn.disabled = true;
+        submitBtn.textContent = "জমা হচ্ছে...";
 
         try {
+          // Step 1: প্রথমে Google Sheet এ attendance submit করুন
+          await submitAttendanceToGoogleSheets();
+
+          // Step 2: তারপর Telegram এ photo + report পাঠান
           // Prepare attendance summary for caption
           let totalStudents = 0;
           let presentStudents = 0;
           let absentStudents = 0;
-          let absentStudentsList = []; // Array to store absent students' info
+          let absentStudentsList = [];
 
           floorRooms.forEach((room) => {
             if (studentsData[room]) {
@@ -1376,7 +1396,6 @@
                   presentStudents++;
                 } else {
                   absentStudents++;
-                  // Add absent student info to the list
                   absentStudentsList.push({
                     name: student.name,
                     reg: student.reg,
@@ -1425,28 +1444,47 @@
             // Close camera modal
             closeCameraModal();
 
-            // Now submit attendance to Google Sheets
-            await submitAttendanceToGoogleSheets();
+            // ✅ এই line এর আগ পর্যন্ত loading animation চলবে
+            alert("অ্যাটেনডেন্স সফলভাবে জমা হয়েছে!");
+
+            setTimeout(() => {
+              // Go back to login screen
+              document
+                .getElementById("attendanceSystem")
+                .classList.add("hidden");
+              document.getElementById("loginScreen").classList.remove("hidden");
+
+              // Clear login fields
+              document.getElementById("staffIdInput").value = "";
+              document.getElementById("staffPasswordInput").value = "";
+              document.getElementById("staffNameInput").value = "";
+              document.getElementById("floorSelect").value = "";
+
+              // Reset attendance system state
+              attendance = {};
+              currentRoomIndex = 0;
+              highlightedStudent = null;
+              staffName = "";
+              selectedFloor = "";
+              floorRooms = [];
+              studentsData = {};
+              serverDate = "";
+              updateProgress();
+            }, 500);
           } else {
             throw new Error("Failed to send photo to Telegram");
           }
         } catch (error) {
           console.error("Error in photo submission:", error);
-          alert("ছবি পাঠাতে ব্যর্থ হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।");
+          alert(
+            "অ্যাটেনডেন্স জমা দিতে ব্যর্থ হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।"
+          );
         } finally {
+          // 🛑 Loading end করুন - success/error যাই হোক
           loadingOverlay.classList.remove("show");
-        }
-      }
-
-      // --- Login Screen Functions ---
-
-      function fillStaffName() {
-        const id = document.getElementById("staffIdInput").value.trim();
-        const nameInput = document.getElementById("staffNameInput");
-        if (staffCredentials[id]) {
-          nameInput.value = staffCredentials[id].name;
-        } else {
-          nameInput.value = "";
+          loadingOverlay.classList.add("hidden"); // hidden class add করুন
+          submitBtn.disabled = false;
+          submitBtn.textContent = "📸 ছবি তুলে অ্যাটেনডেন্স জমা দিন";
         }
       }
 
@@ -1836,30 +1874,47 @@
           totalStudents - presentStudents
         } জন অনুপস্থিত (${Math.round(progressPercentage)}% হাজির)`;
       }
-
+      // Submit attendance to Google Sheet and Telegram
+      // Submit attendance to Google Sheet and Telegram
       // Submit attendance to Google Sheet and Telegram
       async function submitAttendance() {
-        // Open camera modal first
-        await openCameraModal();
-      }
-
-      // Submit attendance to Google Sheets (called after photo is sent)
-      async function submitAttendanceToGoogleSheets() {
         const submitBtn = document.getElementById("submitBtn");
+        const loadingOverlay = document.getElementById("loadingOverlay");
 
+        // Button disable করুন এবং text change করুন
         submitBtn.disabled = true;
         submitBtn.textContent = "জমা হচ্ছে...";
 
+        // Loading overlay দেখান
+        loadingOverlay.classList.add("show");
+
+        try {
+          // Camera modal খুলুন
+          await openCameraModal();
+        } catch (error) {
+          console.error("Error opening camera:", error);
+          alert("ক্যামেরা খুলতে সমস্যা হয়েছে।");
+        } finally {
+          // Loading overlay বন্ধ করুন
+          loadingOverlay.classList.remove("show");
+
+          // Button reset করুন
+          submitBtn.disabled = false;
+          submitBtn.textContent = "📸 ছবি তুলে অ্যাটেনডেন্স জমা দিন";
+        }
+      }
+
+      // Submit attendance to Google Sheets (called after photo is sent)
+      // Submit attendance to Google Sheets only (no Telegram here)
+      // Submit attendance to Google Sheets only (no Telegram here)
+      async function submitAttendanceToGoogleSheets() {
         // Use the serverDate fetched during login
         const dateToSubmit = serverDate;
 
         const attendanceData = [];
-        // The absentStudents array will now be calculated on the server-side
-        // based on the full student list for the floor and the submitted attendance.
 
         floorRooms.forEach((room) => {
           if (studentsData[room]) {
-            // Ensure room data exists
             studentsData[room].forEach((student) => {
               const status = attendance[student.reg] || "present";
               attendanceData.push({
@@ -1876,57 +1931,21 @@
         const payload = {
           staffName: staffName,
           floor: selectedFloor,
-          date: dateToSubmit, // Use the server-fetched date here
+          date: dateToSubmit,
           attendance: attendanceData,
-          // absentStudents is no longer sent from client, calculated on server
         };
 
-        try {
-          const response = await fetch(WEB_APP_URL, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(payload),
-            mode: "no-cors", // Required for Google Apps Script POST requests
-          });
+        const response = await fetch(WEB_APP_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+          mode: "no-cors",
+        });
 
-          // Simulate a delay for the animation to be visible
-          await new Promise((resolve) => setTimeout(resolve, 1500)); // Added delay
-
-          alert("অ্যাটেনডেন্স সফলভাবে জমা হয়েছে!");
-
-          setTimeout(() => {
-            // attendance screen back login screen দেখানো হচ্ছে
-            document.getElementById("attendanceSystem").classList.add("hidden");
-            document.getElementById("loginScreen").classList.remove("hidden");
-
-            // Clear login fields for next login
-            document.getElementById("staffIdInput").value = "";
-            document.getElementById("staffPasswordInput").value = "";
-            document.getElementById("staffNameInput").value = "";
-            document.getElementById("floorSelect").value = "";
-
-            // Reset attendance system state
-            attendance = {};
-            currentRoomIndex = 0;
-            highlightedStudent = null;
-            staffName = "";
-            selectedFloor = "";
-            floorRooms = []; // Clear floorRooms
-            studentsData = {}; // Clear fetched student data
-            serverDate = ""; // Clear server date
-            updateProgress(); // Reset progress display
-          }, 500); // Shortened this timeout as the overlay hides first
-        } catch (error) {
-          console.error("Error submitting attendance:", error);
-          alert(
-            "অ্যাটেনডেন্স জমা দিতে ব্যর্থ হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।"
-          );
-        } finally {
-          submitBtn.disabled = false;
-          submitBtn.textContent = "📸 ছবি তুলে অ্যাটেনডেন্স জমা দিন";
-        }
+        // Simulate a delay for the animation to be visible
+        await new Promise((resolve) => setTimeout(resolve, 1000));
       }
 
       // Initialize the attendance system after login
