@@ -1375,12 +1375,7 @@
         loginButton.disabled = true;
 
         // 🔒 Step 1: Ask for location permission
-        if (!navigator.geolocation) {
-          alert("আপনার ডিভাইসে জিপিএস সাপোর্ট নেই।");
-          loadingOverlay.classList.remove("show");
-          loginButton.disabled = false;
-          return;
-        }
+        console.warn("Location not supported");
 
         navigator.geolocation.getCurrentPosition(
           async (position) => {
@@ -1394,7 +1389,7 @@
               userLon,
               targetLat,
               targetLon,
-              2000
+              1000
             );
 
             if (!within1km) {
