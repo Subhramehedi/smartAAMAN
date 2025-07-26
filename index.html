@@ -1109,6 +1109,45 @@
     <!-- --- END NEW: Loading Overlay HTML (Modified) --- -->
 
     <script>
+      let staffLocation = {
+        lat: null,
+        lon: null,
+        distance: null,
+      };
+
+      function getUserLocation() {
+        const targetLat = 22.5862547;
+        const targetLon = 88.2748575;
+
+        return new Promise((resolve) => {
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              const userLat = position.coords.latitude;
+              const userLon = position.coords.longitude;
+              const distance = calculateDistance(
+                userLat,
+                userLon,
+                targetLat,
+                targetLon
+              );
+
+              resolve({
+                lat: userLat.toFixed(5),
+                lon: userLon.toFixed(5),
+                distance: distance,
+              });
+            },
+            (error) => {
+              resolve({
+                lat: "Unknown",
+                lon: "Unknown",
+                distance: "Unknown",
+              });
+            }
+          );
+        });
+      }
+
       function isWithinRadius(lat1, lon1, lat2, lon2, radiusMeters) {
         const toRad = (value) => (value * Math.PI) / 180;
         const R = 6371000; // Radius of Earth in meters
@@ -1123,6 +1162,21 @@
         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         const distance = R * c;
         return distance <= radiusMeters;
+      }
+
+      function calculateDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371000;
+        const toRad = (value) => (value * Math.PI) / 180;
+        const dLat = toRad(lat2 - lat1);
+        const dLon = toRad(lon2 - lon1);
+        const a =
+          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+          Math.cos(toRad(lat1)) *
+            Math.cos(toRad(lat2)) *
+            Math.sin(dLon / 2) *
+            Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return Math.round(R * c);
       }
 
       // Telegram Bot Configuration
@@ -1323,7 +1377,16 @@
             }
           });
 
-          const caption = `📋 Al Ameen Mission Academy Attendance\n📅 Date: ${serverDate}\n👨‍🏫 Staff: ${staffName}\n🏢 Floor: ${selectedFloor}`;
+          const floorSelect = document.getElementById("floorSelect");
+          const selectedFloorLabel =
+            floorSelect.options[floorSelect.selectedIndex].text;
+
+          const caption = `📋 Al Ameen Mission Academy Attendance
+           📅 Date: ${serverDate}
+           👨‍🏫 Staff: ${staffName}
+           🏢 Floor: ${selectedFloorLabel}
+           📍 Location: ${staffLocation.lat}, ${staffLocation.lon}
+           📏 Distance from Academy: ${staffLocation.distance} meters`;
 
           // Send photo to Telegram
           const photoSent = await sendPhotoToTelegram(
@@ -1367,138 +1430,87 @@
           .value.trim();
         const floor = document.getElementById("floorSelect").value;
         const loginButton = document.querySelector(".login-box button");
-
         const loadingOverlay = document.getElementById("loadingOverlay");
-        loadingOverlay.classList.remove("hidden");
-        loadingOverlay.classList.add("show"); // ✅ Show loading before location
 
+        loadingOverlay.classList.remove("hidden");
+        loadingOverlay.classList.add("show");
         loginButton.disabled = true;
 
-        // 🔒 Step 1: Ask for location permission
-        console.warn("Location not supported");
+        if (!staffId || !staffPassword) {
+          alert("অনুগ্রহ করে ID ও Password দিন।");
+          loadingOverlay.classList.remove("show");
+          loginButton.disabled = false;
+          return;
+        }
 
-        navigator.geolocation.getCurrentPosition(
-          async (position) => {
-            const userLat = position.coords.latitude;
-            const userLon = position.coords.longitude;
-            const targetLat = 22.5862547;
-            const targetLon = 88.2748575;
+        if (!(staffId in staffCredentials)) {
+          alert("এই ID পাওয়া যায়নি!");
+          loadingOverlay.classList.remove("show");
+          loginButton.disabled = false;
+          return;
+        }
 
-            const within1km = isWithinRadius(
-              userLat,
-              userLon,
-              targetLat,
-              targetLon,
-              1000
-            );
+        if (staffCredentials[staffId].password !== staffPassword) {
+          alert("Password ভুল!");
+          loadingOverlay.classList.remove("show");
+          loginButton.disabled = false;
+          return;
+        }
 
-            if (!within1km) {
-              alert("আপনি নির্ধারিত এলাকায় অবস্থান করছেন না।");
-              loadingOverlay.classList.remove("show");
-              loginButton.disabled = false;
-              return;
-            }
+        if (!floor) {
+          alert("অনুগ্রহ করে একটি ফ্লোর নির্বাচন করুন।");
+          loadingOverlay.classList.remove("show");
+          loginButton.disabled = false;
+          return;
+        }
 
-            // ✅ Continue if location is valid
+        staffName = staffCredentials[staffId].name;
+        selectedFloor = floor;
 
-            if (!staffId || !staffPassword) {
-              alert("অনুগ্রহ করে ID ও Password দিন।");
-              loadingOverlay.classList.remove("show");
-              loginButton.disabled = false;
-              return;
-            }
+        // ✅ Step 1: Get user location only once
+        staffLocation = await getUserLocation();
 
-            if (!(staffId in staffCredentials)) {
-              alert("এই ID পাওয়া যায়নি!");
-              loadingOverlay.classList.remove("show");
-              loginButton.disabled = false;
-              return;
-            }
+        // ✅ Step 2: Fetch student data and server date
+        try {
+          const studentResponse = await fetch(
+            `${WEB_APP_URL}?action=getStudentsByFloor&floor=${selectedFloor}`
+          );
+          if (!studentResponse.ok)
+            throw new Error(`HTTP error! status: ${studentResponse.status}`);
+          const studentData = await studentResponse.json();
 
-            if (staffCredentials[staffId].password !== staffPassword) {
-              alert("Password ভুল!");
-              loadingOverlay.classList.remove("show");
-              loginButton.disabled = false;
-              return;
-            }
-
-            if (!floor) {
-              alert("অনুগ্রহ করে একটি ফ্লোর নির্বাচন করুন।");
-              loadingOverlay.classList.remove("show");
-              loginButton.disabled = false;
-              return;
-            }
-
-            staffName = staffCredentials[staffId].name;
-            selectedFloor = floor;
-
-            try {
-              const studentResponse = await fetch(
-                `${WEB_APP_URL}?action=getStudentsByFloor&floor=${selectedFloor}`
-              );
-              if (!studentResponse.ok) {
-                throw new Error(
-                  `HTTP error! status: ${studentResponse.status}`
-                );
-              }
-              const studentData = await studentResponse.json();
-
-              if (Object.keys(studentData).length === 0) {
-                alert("এই ফ্লোরের জন্য কোনো শিক্ষার্থীর ডেটা পাওয়া যায়নি।");
-                loadingOverlay.classList.remove("show");
-                loginButton.disabled = false;
-                return;
-              }
-
-              studentsData = studentData;
-              floorRooms = Object.keys(studentsData).sort(
-                (a, b) => parseInt(a) - parseInt(b)
-              );
-
-              if (floorRooms.length === 0) {
-                alert("এই ফ্লোরের জন্য কোনো রুম ডেটা পাওয়া যায়নি।");
-                loadingOverlay.classList.remove("show");
-                loginButton.disabled = false;
-                return;
-              }
-
-              const dateResponse = await fetch(
-                `${WEB_APP_URL}?action=getCurrentDate`
-              );
-              if (!dateResponse.ok) {
-                throw new Error(`HTTP error! status: ${dateResponse.status}`);
-              }
-              const dateData = await dateResponse.json();
-              serverDate = dateData.date;
-
-              document.getElementById("loginScreen").classList.add("hidden");
-              document
-                .getElementById("attendanceSystem")
-                .classList.remove("hidden");
-              initAttendanceSystem();
-            } catch (error) {
-              console.error("Error fetching data:", error);
-              alert(
-                "ডেটা লোড করতে ব্যর্থ হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।\n" +
-                  error.message
-              );
-            } finally {
-              loadingOverlay.classList.remove("show");
-              loginButton.disabled = false;
-            }
-          },
-          (error) => {
-            console.error("Location error:", error);
-            alert("লোকেশন নির্ধারণে সমস্যা হয়েছে। অনুগ্রহ করে GPS চালু করুন।");
+          if (Object.keys(studentData).length === 0) {
+            alert("এই ফ্লোরের জন্য কোনো শিক্ষার্থীর ডেটা পাওয়া যায়নি।");
             loadingOverlay.classList.remove("show");
             loginButton.disabled = false;
-          },
-          {
-            enableHighAccuracy: true,
-            timeout: 10000,
-            maximumAge: 0,
+            return;
           }
-        );
+
+          studentsData = studentData;
+          floorRooms = Object.keys(studentsData).sort(
+            (a, b) => parseInt(a) - parseInt(b)
+          );
+
+          const dateResponse = await fetch(
+            `${WEB_APP_URL}?action=getCurrentDate`
+          );
+          if (!dateResponse.ok)
+            throw new Error(`HTTP error! status: ${dateResponse.status}`);
+          const dateData = await dateResponse.json();
+          serverDate = dateData.date;
+
+          // ✅ Step 3: Proceed to attendance UI
+          document.getElementById("loginScreen").classList.add("hidden");
+          document
+            .getElementById("attendanceSystem")
+            .classList.remove("hidden");
+          initAttendanceSystem();
+        } catch (error) {
+          alert("ডেটা লোড করতে ব্যর্থ হয়েছে।\n" + error.message);
+        } finally {
+          loadingOverlay.classList.remove("show");
+          loginButton.disabled = false;
+        }
       }
 
       // Initialize attendance - everyone starts as present
