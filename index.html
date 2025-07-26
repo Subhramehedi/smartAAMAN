@@ -1166,7 +1166,7 @@
           // Request camera access
           cameraStream = await navigator.mediaDevices.getUserMedia({
             video: {
-              facingMode: "environment", // Use back camera if available
+              facingMode: "user", // Use front camera
             },
           });
 
