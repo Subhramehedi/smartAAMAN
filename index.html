@@ -828,6 +828,7 @@
         border-radius: 10px;
         background: #000;
         margin-bottom: 20px;
+        transform: scaleX(-1); /* 🔄 Flip horizontally */
       }
 
       .camera-canvas {
@@ -1108,6 +1109,22 @@
     <!-- --- END NEW: Loading Overlay HTML (Modified) --- -->
 
     <script>
+      function isWithinRadius(lat1, lon1, lat2, lon2, radiusMeters) {
+        const toRad = (value) => (value * Math.PI) / 180;
+        const R = 6371000; // Radius of Earth in meters
+        const dLat = toRad(lat2 - lat1);
+        const dLon = toRad(lon2 - lon1);
+        const a =
+          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+          Math.cos(toRad(lat1)) *
+            Math.cos(toRad(lat2)) *
+            Math.sin(dLon / 2) *
+            Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        const distance = R * c;
+        return distance <= radiusMeters;
+      }
+
       // Telegram Bot Configuration
       const TELEGRAM_BOT_TOKEN =
         "7943273526:AAF3obKo6jlMXLZmdHbJvrNrDoaogVGJRq0";
@@ -1207,11 +1224,17 @@
         const ctx = canvas.getContext("2d");
 
         // Set canvas dimensions to match video
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
+        const videoWidth = video.videoWidth;
+        const videoHeight = video.videoHeight;
+        canvas.width = videoWidth;
+        canvas.height = videoHeight;
 
-        // Draw video frame to canvas
-        ctx.drawImage(video, 0, 0);
+        // Flip canvas horizontally (mirror effect for selfie camera)
+        ctx.save();
+        ctx.translate(videoWidth, 0);
+        ctx.scale(-1, 1);
+        ctx.drawImage(video, 0, 0, videoWidth, videoHeight);
+        ctx.restore();
 
         // Convert canvas to blob
         canvas.toBlob(
@@ -1345,97 +1368,142 @@
         const floor = document.getElementById("floorSelect").value;
         const loginButton = document.querySelector(".login-box button");
 
-        if (!staffId || !staffPassword) {
-          alert("অনুগ্রহ করে ID ও Password দিন।");
-          return;
-        }
-
-        if (!(staffId in staffCredentials)) {
-          alert("এই ID পাওয়া যায়নি!");
-          return;
-        }
-
-        if (staffCredentials[staffId].password !== staffPassword) {
-          alert("Password ভুল!");
-          return;
-        }
-
-        if (!floor) {
-          alert("অনুগ্রহ করে একটি ফ্লোর নির্বাচন করুন।");
-          return;
-        }
-
-        // Show loading overlay
         const loadingOverlay = document.getElementById("loadingOverlay");
         loadingOverlay.classList.remove("hidden");
-        loadingOverlay.classList.add("show");
-        loginButton.disabled = true; // Disable button during loading
+        loadingOverlay.classList.add("show"); // ✅ Show loading before location
 
-        // Save staff name from credentials
-        staffName = staffCredentials[staffId].name;
-        selectedFloor = floor;
+        loginButton.disabled = true;
 
-        try {
-          // Fetch student data for the selected floor
-          const studentResponse = await fetch(
-            `${WEB_APP_URL}?action=getStudentsByFloor&floor=${selectedFloor}`
-          );
-          if (!studentResponse.ok) {
-            throw new Error(`HTTP error! status: ${studentResponse.status}`);
-          }
-          const studentData = await studentResponse.json();
-
-          if (Object.keys(studentData).length === 0) {
-            alert("এই ফ্লোরের জন্য কোনো শিক্ষার্থীর ডেটা পাওয়া যায়নি।");
-            loadingOverlay.classList.remove("show");
-            loginButton.disabled = false;
-            return;
-          }
-
-          studentsData = studentData; // Update the global studentsData object
-          // Sort room numbers numerically, handling 'old' as a special case if needed,
-          // but for now, just sort numerically for other floors.
-          // For 'old' building, rooms like 14, 15 will be sorted as strings.
-          floorRooms = Object.keys(studentsData).sort((a, b) => {
-            if (a === "old" || b === "old") {
-              // Handle 'old' if it somehow appears as a room key
-              return a.localeCompare(b);
-            }
-            return parseInt(a) - parseInt(b);
-          });
-
-          if (floorRooms.length === 0) {
-            alert("এই ফ্লোরের জন্য কোনো রুম ডেটা পাওয়া যায়নি।");
-            loadingOverlay.classList.remove("show");
-            loginButton.disabled = false;
-            return;
-          }
-
-          // NEW: Fetch current date from server
-          const dateResponse = await fetch(
-            `${WEB_APP_URL}?action=getCurrentDate`
-          );
-          if (!dateResponse.ok) {
-            throw new Error(`HTTP error! status: ${dateResponse.status}`);
-          }
-          const dateData = await dateResponse.json();
-          serverDate = dateData.date; // Store the fetched date
-
-          document.getElementById("loginScreen").classList.add("hidden");
-          document
-            .getElementById("attendanceSystem")
-            .classList.remove("hidden");
-          initAttendanceSystem();
-        } catch (error) {
-          console.error("Error fetching data:", error);
-          alert(
-            "ডেটা লোড করতে ব্যর্থ হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।\n" +
-              error.message
-          );
-        } finally {
+        // 🔒 Step 1: Ask for location permission
+        if (!navigator.geolocation) {
+          alert("আপনার ডিভাইসে জিপিএস সাপোর্ট নেই।");
           loadingOverlay.classList.remove("show");
           loginButton.disabled = false;
+          return;
         }
+
+        navigator.geolocation.getCurrentPosition(
+          async (position) => {
+            const userLat = position.coords.latitude;
+            const userLon = position.coords.longitude;
+            const targetLat = 22.591581;
+            const targetLon = 88.276607;
+
+            const within1km = isWithinRadius(
+              userLat,
+              userLon,
+              targetLat,
+              targetLon,
+              1000
+            );
+
+            if (!within1km) {
+              alert("আপনি নির্ধারিত এলাকায় অবস্থান করছেন না।");
+              loadingOverlay.classList.remove("show");
+              loginButton.disabled = false;
+              return;
+            }
+
+            // ✅ Continue if location is valid
+
+            if (!staffId || !staffPassword) {
+              alert("অনুগ্রহ করে ID ও Password দিন।");
+              loadingOverlay.classList.remove("show");
+              loginButton.disabled = false;
+              return;
+            }
+
+            if (!(staffId in staffCredentials)) {
+              alert("এই ID পাওয়া যায়নি!");
+              loadingOverlay.classList.remove("show");
+              loginButton.disabled = false;
+              return;
+            }
+
+            if (staffCredentials[staffId].password !== staffPassword) {
+              alert("Password ভুল!");
+              loadingOverlay.classList.remove("show");
+              loginButton.disabled = false;
+              return;
+            }
+
+            if (!floor) {
+              alert("অনুগ্রহ করে একটি ফ্লোর নির্বাচন করুন।");
+              loadingOverlay.classList.remove("show");
+              loginButton.disabled = false;
+              return;
+            }
+
+            staffName = staffCredentials[staffId].name;
+            selectedFloor = floor;
+
+            try {
+              const studentResponse = await fetch(
+                `${WEB_APP_URL}?action=getStudentsByFloor&floor=${selectedFloor}`
+              );
+              if (!studentResponse.ok) {
+                throw new Error(
+                  `HTTP error! status: ${studentResponse.status}`
+                );
+              }
+              const studentData = await studentResponse.json();
+
+              if (Object.keys(studentData).length === 0) {
+                alert("এই ফ্লোরের জন্য কোনো শিক্ষার্থীর ডেটা পাওয়া যায়নি।");
+                loadingOverlay.classList.remove("show");
+                loginButton.disabled = false;
+                return;
+              }
+
+              studentsData = studentData;
+              floorRooms = Object.keys(studentsData).sort(
+                (a, b) => parseInt(a) - parseInt(b)
+              );
+
+              if (floorRooms.length === 0) {
+                alert("এই ফ্লোরের জন্য কোনো রুম ডেটা পাওয়া যায়নি।");
+                loadingOverlay.classList.remove("show");
+                loginButton.disabled = false;
+                return;
+              }
+
+              const dateResponse = await fetch(
+                `${WEB_APP_URL}?action=getCurrentDate`
+              );
+              if (!dateResponse.ok) {
+                throw new Error(`HTTP error! status: ${dateResponse.status}`);
+              }
+              const dateData = await dateResponse.json();
+              serverDate = dateData.date;
+
+              document.getElementById("loginScreen").classList.add("hidden");
+              document
+                .getElementById("attendanceSystem")
+                .classList.remove("hidden");
+              initAttendanceSystem();
+            } catch (error) {
+              console.error("Error fetching data:", error);
+              alert(
+                "ডেটা লোড করতে ব্যর্থ হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।\n" +
+                  error.message
+              );
+            } finally {
+              loadingOverlay.classList.remove("show");
+              loginButton.disabled = false;
+            }
+          },
+          (error) => {
+            console.error("Location error:", error);
+            alert("লোকেশন নির্ধারণে সমস্যা হয়েছে। অনুগ্রহ করে GPS চালু করুন।");
+            loadingOverlay.classList.remove("show");
+            loginButton.disabled = false;
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0,
+          }
+        );
       }
 
       // Initialize attendance - everyone starts as present
