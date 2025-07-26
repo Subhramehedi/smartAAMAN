@@ -1365,6 +1365,8 @@
           // Prepare attendance summary for caption
           let totalStudents = 0;
           let presentStudents = 0;
+          let absentStudents = 0;
+          let absentStudentsList = []; // Array to store absent students' info
 
           floorRooms.forEach((room) => {
             if (studentsData[room]) {
@@ -1372,6 +1374,15 @@
                 totalStudents++;
                 if (attendance[student.reg] === "present") {
                   presentStudents++;
+                } else {
+                  absentStudents++;
+                  // Add absent student info to the list
+                  absentStudentsList.push({
+                    name: student.name,
+                    reg: student.reg,
+                    room: room,
+                    class: student.class,
+                  });
                 }
               });
             }
@@ -1381,12 +1392,28 @@
           const selectedFloorLabel =
             floorSelect.options[floorSelect.selectedIndex].text;
 
-          const caption = `📋 Al Ameen Mission Academy Attendance
-           📅 Date: ${serverDate}
-           👨‍🏫 Staff: ${staffName}
-           🏢 Floor: ${selectedFloorLabel}
-           📍 Location: ${staffLocation.lat}, ${staffLocation.lon}
-           📏 Distance from Academy: ${staffLocation.distance} meters`;
+          // Create the absent students list text
+          let absentStudentsText = "";
+          if (absentStudentsList.length > 0) {
+            absentStudentsText = `\n\n❌ অনুপস্থিত শিক্ষার্থীরা (${absentStudents} জন):\n`;
+            absentStudentsList.forEach((student, index) => {
+              absentStudentsText += `${index + 1}. ${student.name} (Reg: ${
+                student.reg
+              }, Room: ${student.room}, Class: ${student.class})\n`;
+            });
+          } else {
+            absentStudentsText = `\n\n✅ সবাই হাজির!`;
+          }
+
+          const caption = `📋 Al Ameen Mission Academy Nayabaz Attendance
+📅 Date: ${serverDate}
+👨‍🏫 Staff: ${staffName}
+🏢 Floor: ${selectedFloorLabel}
+👥 মোট শিক্ষার্থী: ${totalStudents} জন
+✅ হাজির: ${presentStudents} জন
+❌ অনুপস্থিত: ${absentStudents} জন
+📍 Location: ${staffLocation.lat}, ${staffLocation.lon}
+📏 Distance from Academy: ${staffLocation.distance} meters${absentStudentsText}`;
 
           // Send photo to Telegram
           const photoSent = await sendPhotoToTelegram(
