@@ -1185,6 +1185,7 @@
       const TELEGRAM_CHAT_ID = "-4814783764";
 
       const staffCredentials = {
+        staff01: { name: "Subhra Mehedi", password: "8597111396" },
         staff02: { name: "Saddam Khan", password: "7548976846" },
         staff03: { name: "Safiqul Alam", password: "9732429502" },
         staff04: { name: "Sk Atikur Rahaman", password: "9775256530" },
@@ -1200,6 +1201,54 @@
         staff14: { name: "Suraj Khan", password: "9062974318" },
       };
 
+      // Device Fingerprinting Function
+      function generateDeviceFingerprint() {
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        ctx.textBaseline = "top";
+        ctx.font = "14px Arial";
+        ctx.fillText("Device fingerprint", 2, 2);
+
+        const fingerprint = [
+          navigator.userAgent,
+          navigator.language,
+          screen.width + "x" + screen.height,
+          screen.colorDepth,
+          new Date().getTimezoneOffset(),
+          !!window.localStorage,
+          !!window.sessionStorage,
+          canvas.toDataURL(),
+        ].join("|");
+
+        // Simple hash function
+        let hash = 0;
+        for (let i = 0; i < fingerprint.length; i++) {
+          const char = fingerprint.charCodeAt(i);
+          hash = (hash << 5) - hash + char;
+          hash = hash & hash; // Convert to 32-bit integer
+        }
+
+        return Math.abs(hash).toString(16);
+      }
+
+      // Device verification function
+      async function verifyDeviceAccess(staffId) {
+        const deviceFingerprint = generateDeviceFingerprint();
+
+        try {
+          const response = await fetch(
+            `${WEB_APP_URL}?action=verifyDevice&staffId=${staffId}&deviceFingerprint=${deviceFingerprint}`
+          );
+          if (!response.ok)
+            throw new Error(`HTTP error! status: ${response.status}`);
+          const result = await response.json();
+          return result;
+        } catch (error) {
+          console.error("Device verification error:", error);
+          return { status: "error", message: "Device verification failed" };
+        }
+      }
+
       function fillStaffName() {
         const id = document.getElementById("staffIdInput").value.trim();
         const nameInput = document.getElementById("staffNameInput");
@@ -1212,7 +1261,7 @@
 
       // Google Apps Script Web App URL (Replace with your deployed URL)
       const WEB_APP_URL =
-        "https://script.google.com/macros/s/AKfycbwxM80x6P9VoahyfLk2OdopVc5JS9zgySCHae1AH6UCCpgavZZzLaO47IH1mclB2tZdtQ/exec"; // REPLACE WITH YOUR DEPLOYED WEB APP URL
+        "https://script.google.com/macros/s/AKfycbx0ROLtvMUAV_a2ttravW435gBsw_kSeKZgABaksQtE-F7NJJKLDaXsm_8iI8EA6N7viA/exec"; // REPLACE WITH YOUR DEPLOYED WEB APP URL
 
       // This will now be populated dynamically
       let studentsData = {};
@@ -1518,6 +1567,22 @@
 
         if (staffCredentials[staffId].password !== staffPassword) {
           alert("Password ভুল!");
+          loadingOverlay.classList.remove("show");
+          loginButton.disabled = false;
+          return;
+        }
+
+        // NEW: Device verification step
+        try {
+          const deviceVerification = await verifyDeviceAccess(staffId);
+          if (deviceVerification.status === "error") {
+            alert(deviceVerification.message);
+            loadingOverlay.classList.remove("show");
+            loginButton.disabled = false;
+            return;
+          }
+        } catch (error) {
+          alert("Device verification failed. Please try again.");
           loadingOverlay.classList.remove("show");
           loginButton.disabled = false;
           return;
