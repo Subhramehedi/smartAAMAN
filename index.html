@@ -12,91 +12,6 @@
       rel="stylesheet"
     />
     <style>
-      /* Location Alert Styles - Add to your existing CSS */
-      .location-alert {
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: white;
-        padding: 30px;
-        border-radius: 15px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-        z-index: 10001;
-        text-align: center;
-        max-width: 350px;
-        width: 90%;
-        opacity: 0;
-        visibility: hidden;
-        transition: opacity 0.3s ease, visibility 0.3s ease;
-      }
-
-      .location-alert.show {
-        opacity: 1;
-        visibility: visible;
-      }
-
-      .location-alert-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.5);
-        z-index: 10000;
-        opacity: 0;
-        visibility: hidden;
-        transition: opacity 0.3s ease, visibility 0.3s ease;
-      }
-
-      .location-alert-overlay.show {
-        opacity: 1;
-        visibility: visible;
-      }
-
-      .location-alert h3 {
-        color: #0f4c75;
-        margin-bottom: 15px;
-        font-size: 1.2rem;
-      }
-
-      .location-alert p {
-        color: #495057;
-        margin-bottom: 20px;
-        line-height: 1.5;
-      }
-
-      .location-alert-buttons {
-        display: flex;
-        gap: 10px;
-        justify-content: center;
-        flex-wrap: wrap;
-      }
-
-      .location-btn {
-        padding: 10px 20px;
-        border: none;
-        border-radius: 10px;
-        cursor: pointer;
-        font-size: 14px;
-        font-weight: 600;
-        transition: all 0.3s ease;
-      }
-
-      .location-allow-btn {
-        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-        color: white;
-      }
-
-      .location-cancel-btn {
-        background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
-        color: white;
-      }
-
-      .location-btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-      }
       /* Existing CSS styles remain here */
       .logo {
         width: 60px;
@@ -1186,99 +1101,7 @@
         lon: null,
         distance: null,
       };
-      function checkLocationAvailability() {
-        return new Promise((resolve) => {
-          if (!navigator.geolocation) {
-            resolve({ available: false, enabled: false });
-            return;
-          }
 
-          // Show loading overlay during location check
-          const loadingOverlay = document.getElementById("loadingOverlay");
-          loadingOverlay.classList.remove("hidden");
-          loadingOverlay.classList.add("show");
-
-          // Try to get current position to check if it's enabled
-          navigator.geolocation.getCurrentPosition(
-            (position) => {
-              // Hide loading overlay
-              loadingOverlay.classList.remove("show");
-              loadingOverlay.classList.add("hidden");
-              resolve({ available: true, enabled: true });
-            },
-            (error) => {
-              // Hide loading overlay
-              loadingOverlay.classList.remove("show");
-              loadingOverlay.classList.add("hidden");
-
-              if (error.code === 1) {
-                // PERMISSION_DENIED
-                resolve({ available: true, enabled: false });
-              } else {
-                resolve({ available: true, enabled: false });
-              }
-            },
-            { timeout: 8000 } // 8 second timeout for initial check
-          );
-        });
-      }
-
-      // Show location alert modal
-      function showLocationAlert() {
-        const overlay = document.getElementById("locationAlertOverlay");
-        const alert = document.getElementById("locationAlert");
-
-        overlay.classList.add("show");
-        alert.classList.add("show");
-      }
-
-      // Close location alert modal
-      function closeLocationAlert() {
-        const overlay = document.getElementById("locationAlertOverlay");
-        const alert = document.getElementById("locationAlert");
-
-        overlay.classList.remove("show");
-        alert.classList.remove("show");
-      }
-
-      // Request location permission
-      function requestLocationPermission() {
-        closeLocationAlert();
-
-        // Show loading overlay during location access
-        const loadingOverlay = document.getElementById("loadingOverlay");
-        loadingOverlay.classList.remove("hidden");
-        loadingOverlay.classList.add("show");
-
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            // Hide loading overlay
-            loadingOverlay.classList.remove("show");
-            loadingOverlay.classList.add("hidden");
-
-            // Success - location is now enabled
-            alert(
-              "Location permission দেওয়া হয়েছে! এখন আবার login করার চেষ্টা করুন।"
-            );
-          },
-          (error) => {
-            // Hide loading overlay
-            loadingOverlay.classList.remove("show");
-            loadingOverlay.classList.add("hidden");
-
-            if (error.code === 1) {
-              alert(
-                "Location permission দেওয়া হয়নি। অনুগ্রহ করে browser settings থেকে manually location enable করুন।"
-              );
-            } else {
-              alert(
-                "Location access করতে সমস্যা হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।"
-              );
-            }
-          },
-          { timeout: 10000 } // 10 second timeout
-        );
-      }
       // Device information detection functions
       function getOperatingSystem() {
         const userAgent = navigator.userAgent;
@@ -1799,54 +1622,41 @@
         const loginButton = document.querySelector(".login-box button");
         const loadingOverlay = document.getElementById("loadingOverlay");
 
+        loadingOverlay.classList.remove("hidden");
+        loadingOverlay.classList.add("show");
+        loginButton.disabled = true;
+
         if (!staffId || !staffPassword) {
           alert("অনুগ্রহ করে ID ও Password দিন।");
+          loadingOverlay.classList.remove("show");
+          loginButton.disabled = false;
           return;
         }
 
         if (!(staffId in staffCredentials)) {
           alert("এই ID পাওয়া যায়নি!");
+          loadingOverlay.classList.remove("show");
+          loginButton.disabled = false;
           return;
         }
 
         if (staffCredentials[staffId].password !== staffPassword) {
           alert("Password ভুল!");
+          loadingOverlay.classList.remove("show");
+          loginButton.disabled = false;
           return;
         }
-
-        if (!floor) {
-          alert("অনুগ্রহ করে একটি ফ্লোর নির্বাচন করুন।");
-          return;
-        }
-
-        // ✅ NEW: Check location availability first
-        const locationStatus = await checkLocationAvailability();
-
-        if (!locationStatus.available) {
-          alert("আপনার device location support করে না।");
-          return;
-        }
-
-        if (!locationStatus.enabled) {
-          showLocationAlert();
-          return;
-        }
-
-        // Rest of your existing startAttendance code remains the same...
-        loadingOverlay.classList.remove("hidden");
-        loadingOverlay.classList.add("show");
-        loginButton.disabled = true;
 
         try {
-          // Step 1: Get user location first
+          // ✅ Step 1: Get user location first
           staffLocation = await getUserLocation();
 
-          // UPDATED: Pass location data to device verification
+          // ✅ UPDATED: Pass location data to device verification
           const staffNameFromCredentials = staffCredentials[staffId].name;
           const deviceVerification = await verifyDeviceAccess(
             staffId,
             staffNameFromCredentials,
-            staffLocation
+            staffLocation // ✅ NEW: Pass location data
           );
 
           if (deviceVerification.status === "error") {
@@ -1856,6 +1666,7 @@
             return;
           }
 
+          // Optional: Show success message with device info for first-time registration
           if (
             deviceVerification.message &&
             deviceVerification.message.includes("registered successfully")
@@ -1869,10 +1680,17 @@
           return;
         }
 
-        // Continue with the rest of your existing code...
+        if (!floor) {
+          alert("অনুগ্রহ করে একটি ফ্লোর নির্বাচন করুন।");
+          loadingOverlay.classList.remove("show");
+          loginButton.disabled = false;
+          return;
+        }
+
         staffName = staffCredentials[staffId].name;
         selectedFloor = floor;
 
+        // ✅ Step 2: Fetch student data and server date
         try {
           const studentResponse = await fetch(
             `${WEB_APP_URL}?action=getStudentsByFloor&floor=${selectedFloor}`
@@ -1901,6 +1719,7 @@
           const dateData = await dateResponse.json();
           serverDate = dateData.date;
 
+          // ✅ Step 3: Proceed to attendance UI
           document.getElementById("loginScreen").classList.add("hidden");
           document
             .getElementById("attendanceSystem")
@@ -2338,29 +2157,5 @@
           .addEventListener("click", addBlastEffect);
       });
     </script>
-
-    <div id="locationAlertOverlay" class="location-alert-overlay">
-      <div id="locationAlert" class="location-alert">
-        <h3>📍 Location Permission প্রয়োজন</h3>
-        <p>
-          অ্যাটেনডেন্স নিতে আপনার location on করা প্রয়োজন। অনুগ্রহ করে "Allow"
-          বাটনে ক্লিক করুন।
-        </p>
-        <div class="location-alert-buttons">
-          <button
-            class="location-btn location-allow-btn"
-            onclick="requestLocationPermission()"
-          >
-            📍 Allow Location
-          </button>
-          <button
-            class="location-btn location-cancel-btn"
-            onclick="closeLocationAlert()"
-          >
-            ❌ Cancel
-          </button>
-        </div>
-      </div>
-    </div>
   </body>
 </html>
