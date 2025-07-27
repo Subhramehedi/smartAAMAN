@@ -1189,133 +1189,192 @@
 
                 if (permission.state === "denied") {
                   // Permission is denied, show manual instruction
-                  showLocationPermissionDialog("denied");
-                  resolve({
-                    lat: "Unknown",
-                    lon: "Unknown",
-                    distance: "Unknown",
-                  });
+                  showLocationPermissionDialog("denied", resolve);
+                  return;
+                } else if (permission.state === "prompt") {
+                  // Permission not yet asked, show our custom dialog first
+                  showLocationPermissionDialog(
+                    "prompt",
+                    resolve,
+                    targetLat,
+                    targetLon
+                  );
                   return;
                 }
 
-                // Try to get location
-                requestLocation(resolve, targetLat, targetLon);
+                // Permission already granted, try to get location directly
+                requestLocationDirectly(resolve, targetLat, targetLon);
               });
           } else {
             // Fallback for browsers that don't support permissions API
-            requestLocation(resolve, targetLat, targetLon);
+            showLocationPermissionDialog(
+              "prompt",
+              resolve,
+              targetLat,
+              targetLon
+            );
           }
         });
       }
 
+      // ✅ NEW: Function to directly request location (triggers browser popup)
       function requestLocation(resolve, targetLat, targetLon) {
-        // Show a user-friendly prompt before requesting location
-        showLocationPermissionDialog("prompt");
-
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            const userLat = position.coords.latitude;
-            const userLon = position.coords.longitude;
-            const distance = calculateDistance(
-              userLat,
-              userLon,
-              targetLat,
-              targetLon
-            );
-
-            // Hide the dialog if location was successfully obtained
-            hideLocationPermissionDialog();
-
-            resolve({
-              lat: userLat.toFixed(5),
-              lon: userLon.toFixed(5),
-              distance: distance,
-            });
-          },
-          (error) => {
-            console.log("Geolocation error:", error);
-
-            // Handle different types of errors
-            let errorType = "error";
-            switch (error.code) {
-              case error.PERMISSION_DENIED:
-                errorType = "denied";
-                break;
-              case error.POSITION_UNAVAILABLE:
-                errorType = "unavailable";
-                break;
-              case error.TIMEOUT:
-                errorType = "timeout";
-                break;
-              default:
-                errorType = "error";
-                break;
-            }
-
-            showLocationPermissionDialog(errorType);
-
-            resolve({
-              lat: "Unknown",
-              lon: "Unknown",
-              distance: "Unknown",
-            });
-          },
-          {
-            enableHighAccuracy: true,
-            timeout: 10000, // 10 second timeout
-            maximumAge: 60000, // Accept 1-minute old location
-          }
-        );
+        // Directly trigger browser's location popup
+        requestLocationDirectly(resolve, targetLat, targetLon);
       }
 
-      function showLocationPermissionDialog(type) {
+      function showLocationPermissionDialog(
+        type,
+        resolve,
+        targetLat,
+        targetLon
+      ) {
         // Remove existing dialog if any
         const existingDialog = document.getElementById("locationDialog");
         if (existingDialog) {
           existingDialog.remove();
         }
 
-        let title, message, buttonText, buttonAction;
+        let title, message, buttons;
 
         switch (type) {
           case "prompt":
             title = "📍 Location Permission";
             message =
-              'আপনার attendance verify করার জন্য আমাদের আপনার location access করতে হবে। অনুগ্রহ করে "Allow" বা "অনুমতি দিন" এ click করুন।';
-            buttonText = "বুঝেছি";
-            buttonAction = () => hideLocationPermissionDialog();
+              "আপনার attendance verify করার জন্য আমাদের আপনার location access করতে হবে। Location share করতে চান?";
+            buttons = `
+        <button onclick="triggerLocationRequest()" style="
+          background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+          color: white;
+          border: none;
+          padding: 12px 25px;
+          border-radius: 10px;
+          font-size: 16px;
+          font-weight: bold;
+          cursor: pointer;
+          margin-right: 10px;
+          transition: all 0.3s ease;
+        " onmouseover="this.style.transform='translateY(-2px)'" 
+           onmouseout="this.style.transform='translateY(0px)'">Allow Location</button>
+        <button onclick="skipLocation()" style="
+          background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+          color: white;
+          border: none;
+          padding: 12px 25px;
+          border-radius: 10px;
+          font-size: 16px;
+          font-weight: bold;
+          cursor: pointer;
+          transition: all 0.3s ease;
+        " onmouseover="this.style.transform='translateY(-2px)'" 
+           onmouseout="this.style.transform='translateY(0px)'">Skip</button>
+      `;
             break;
 
           case "denied":
             title = "⚠️ Location Permission প্রয়োজন";
             message =
               'Location permission deny করা হয়েছে। Manual enable করতে:\n\n১. Browser এর address bar এর পাশে 🔒 বা ⚙️ icon এ click করুন\n২. "Location" বা "স্থান" option এ "Allow" করুন\n৩. Page টি refresh করুন\n\nLocation ছাড়াও আপনি login continue করতে পারবেন।';
-            buttonText = "Continue Anyway";
-            buttonAction = () => hideLocationPermissionDialog();
+            buttons = `
+        <button onclick="skipLocation()" style="
+          background: linear-gradient(135deg, #0f4c75 0%, #3282b8 100%);
+          color: white;
+          border: none;
+          padding: 12px 25px;
+          border-radius: 10px;
+          font-size: 16px;
+          font-weight: bold;
+          cursor: pointer;
+          transition: all 0.3s ease;
+        " onmouseover="this.style.transform='translateY(-2px)'" 
+           onmouseout="this.style.transform='translateY(0px)'">Continue Without Location</button>
+      `;
             break;
 
           case "unavailable":
             title = "📡 Location Unavailable";
             message =
               "আপনার device এ location service পাওয়া যাচ্ছে না। অনুগ্রহ করে GPS on করুন বা WiFi connection check করুন।\n\nLocation ছাড়াও আপনি login continue করতে পারবেন।";
-            buttonText = "Continue Anyway";
-            buttonAction = () => hideLocationPermissionDialog();
+            buttons = `
+        <button onclick="retryLocation()" style="
+          background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+          color: white;
+          border: none;
+          padding: 12px 25px;
+          border-radius: 10px;
+          font-size: 16px;
+          font-weight: bold;
+          cursor: pointer;
+          margin-right: 10px;
+          transition: all 0.3s ease;
+        " onmouseover="this.style.transform='translateY(-2px)'" 
+           onmouseout="this.style.transform='translateY(0px)'">Try Again</button>
+        <button onclick="skipLocation()" style="
+          background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+          color: white;
+          border: none;
+          padding: 12px 25px;
+          border-radius: 10px;
+          font-size: 16px;
+          font-weight: bold;
+          cursor: pointer;
+          transition: all 0.3s ease;
+        " onmouseover="this.style.transform='translateY(-2px)'" 
+           onmouseout="this.style.transform='translateY(0px)'">Continue Without Location</button>
+      `;
             break;
 
           case "timeout":
             title = "⏱️ Location Timeout";
             message =
-              "Location পেতে সময় বেশি লাগছে। Network connection check করুন।\n\nLocation ছাড়াও আপনি login continue করতে পারবেন।";
-            buttonText = "Continue Anyway";
-            buttonAction = () => hideLocationPermissionDialog();
+              "Location পেতে সময় বেশি লাগছে। Network connection check করুন।";
+            buttons = `
+        <button onclick="retryLocation()" style="
+          background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+          color: white;
+          border: none;
+          padding: 12px 25px;
+          border-radius: 10px;
+          font-size: 16px;
+          font-weight: bold;
+          cursor: pointer;
+          margin-right: 10px;
+          transition: all 0.3s ease;
+        " onmouseover="this.style.transform='translateY(-2px)'" 
+           onmouseout="this.style.transform='translateY(0px)'">Try Again</button>
+        <button onclick="skipLocation()" style="
+          background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+          color: white;
+          border: none;
+          padding: 12px 25px;
+          border-radius: 10px;
+          font-size: 16px;
+          font-weight: bold;
+          cursor: pointer;
+          transition: all 0.3s ease;
+        " onmouseover="this.style.transform='translateY(-2px)'" 
+           onmouseout="this.style.transform='translateY(0px)'">Continue Without Location</button>
+      `;
             break;
 
           default:
             title = "❌ Location Error";
             message =
               "Location access করতে সমস্যা হয়েছে। আপনি location ছাড়াও login continue করতে পারবেন।";
-            buttonText = "Continue Anyway";
-            buttonAction = () => hideLocationPermissionDialog();
+            buttons = `
+        <button onclick="skipLocation()" style="
+          background: linear-gradient(135deg, #0f4c75 0%, #3282b8 100%);
+          color: white;
+          border: none;
+          padding: 12px 25px;
+          border-radius: 10px;
+          font-size: 16px;
+          font-weight: bold;
+          cursor: pointer;
+          transition: all 0.3s ease;
+        " onmouseover="this.style.transform='translateY(-2px)'" 
+           onmouseout="this.style.transform='translateY(0px)'">Continue Anyway</button>
+      `;
             break;
         }
 
@@ -1338,7 +1397,7 @@
         background: white;
         padding: 30px;
         border-radius: 20px;
-        max-width: 400px;
+        max-width: 450px;
         margin: 20px;
         text-align: center;
         box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
@@ -1355,18 +1414,9 @@
           margin-bottom: 25px;
           white-space: pre-line;
         ">${message}</p>
-        <button onclick="handleLocationDialogAction()" style="
-          background: linear-gradient(135deg, #0f4c75 0%, #3282b8 100%);
-          color: white;
-          border: none;
-          padding: 12px 25px;
-          border-radius: 10px;
-          font-size: 16px;
-          font-weight: bold;
-          cursor: pointer;
-          transition: all 0.3s ease;
-        " onmouseover="this.style.transform='translateY(-2px)'" 
-           onmouseout="this.style.transform='translateY(0px)'">${buttonText}</button>
+        <div style="display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;">
+          ${buttons}
+        </div>
       </div>
     </div>
   `;
@@ -1374,23 +1424,77 @@
         // Add dialog to page
         document.body.insertAdjacentHTML("beforeend", dialogHTML);
 
-        // Store button action globally
-        window.locationDialogAction = buttonAction;
+        // Store resolve function and location params globally for button actions
+        window.locationResolve = resolve;
+        window.locationTargetLat = targetLat;
+        window.locationTargetLon = targetLon;
       }
 
-      // ✅ NEW: Function to hide location permission dialog
+      // ✅ NEW: Function to trigger browser's location popup
+      function triggerLocationRequest() {
+        console.log("Triggering browser location request...");
+
+        if (
+          window.locationTargetLat &&
+          window.locationTargetLon &&
+          window.locationResolve
+        ) {
+          requestLocationDirectly(
+            window.locationResolve,
+            window.locationTargetLat,
+            window.locationTargetLon
+          );
+        } else {
+          console.error("Location parameters not found");
+          skipLocation();
+        }
+      }
+
+      // ✅ NEW: Function to retry location request
+      function retryLocation() {
+        console.log("Retrying location request...");
+
+        if (
+          window.locationTargetLat &&
+          window.locationTargetLon &&
+          window.locationResolve
+        ) {
+          requestLocationDirectly(
+            window.locationResolve,
+            window.locationTargetLat,
+            window.locationTargetLon
+          );
+        } else {
+          console.error("Location parameters not found");
+          skipLocation();
+        }
+      }
+
+      // ✅ NEW: Function to skip location and continue
+      function skipLocation() {
+        console.log("Skipping location request...");
+
+        hideLocationPermissionDialog();
+
+        if (window.locationResolve) {
+          window.locationResolve({
+            lat: "Unknown",
+            lon: "Unknown",
+            distance: "Unknown",
+          });
+        }
+      }
+
       function hideLocationPermissionDialog() {
         const dialog = document.getElementById("locationDialog");
         if (dialog) {
           dialog.remove();
         }
-      }
 
-      // ✅ NEW: Global function to handle dialog button action
-      function handleLocationDialogAction() {
-        if (window.locationDialogAction) {
-          window.locationDialogAction();
-        }
+        // Clean up global variables
+        window.locationResolve = null;
+        window.locationTargetLat = null;
+        window.locationTargetLon = null;
       }
 
       function isWithinRadius(lat1, lon1, lat2, lon2, radiusMeters) {
