@@ -12,6 +12,91 @@
       rel="stylesheet"
     />
     <style>
+      /* Location Alert Styles - Add to your existing CSS */
+      .location-alert {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: white;
+        padding: 30px;
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        z-index: 10001;
+        text-align: center;
+        max-width: 350px;
+        width: 90%;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
+      }
+
+      .location-alert.show {
+        opacity: 1;
+        visibility: visible;
+      }
+
+      .location-alert-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 10000;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
+      }
+
+      .location-alert-overlay.show {
+        opacity: 1;
+        visibility: visible;
+      }
+
+      .location-alert h3 {
+        color: #0f4c75;
+        margin-bottom: 15px;
+        font-size: 1.2rem;
+      }
+
+      .location-alert p {
+        color: #495057;
+        margin-bottom: 20px;
+        line-height: 1.5;
+      }
+
+      .location-alert-buttons {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+
+      .location-btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+      }
+
+      .location-allow-btn {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        color: white;
+      }
+
+      .location-cancel-btn {
+        background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+        color: white;
+      }
+
+      .location-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      }
       /* Existing CSS styles remain here */
       .logo {
         width: 60px;
@@ -1166,335 +1251,32 @@
         const targetLon = 88.27662;
 
         return new Promise((resolve) => {
-          // Check if geolocation is supported
-          if (!navigator.geolocation) {
-            console.log("Geolocation is not supported by this browser");
-            resolve({
-              lat: "Unknown",
-              lon: "Unknown",
-              distance: "Unknown",
-            });
-            return;
-          }
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              const userLat = position.coords.latitude;
+              const userLon = position.coords.longitude;
+              const distance = calculateDistance(
+                userLat,
+                userLon,
+                targetLat,
+                targetLon
+              );
 
-          // First check current permission status
-          if ("permissions" in navigator) {
-            navigator.permissions
-              .query({ name: "geolocation" })
-              .then(function (permission) {
-                console.log(
-                  "Current geolocation permission status:",
-                  permission.state
-                );
-
-                if (permission.state === "denied") {
-                  // Permission is denied, show manual instruction
-                  showLocationPermissionDialog("denied", resolve);
-                  return;
-                } else if (permission.state === "prompt") {
-                  // Permission not yet asked, show our custom dialog first
-                  showLocationPermissionDialog(
-                    "prompt",
-                    resolve,
-                    targetLat,
-                    targetLon
-                  );
-                  return;
-                }
-
-                // Permission already granted, try to get location directly
-                requestLocationDirectly(resolve, targetLat, targetLon);
+              resolve({
+                lat: userLat.toFixed(5),
+                lon: userLon.toFixed(5),
+                distance: distance,
               });
-          } else {
-            // Fallback for browsers that don't support permissions API
-            showLocationPermissionDialog(
-              "prompt",
-              resolve,
-              targetLat,
-              targetLon
-            );
-          }
+            },
+            (error) => {
+              resolve({
+                lat: "Unknown",
+                lon: "Unknown",
+                distance: "Unknown",
+              });
+            }
+          );
         });
-      }
-
-      // ✅ NEW: Function to directly request location (triggers browser popup)
-      function requestLocation(resolve, targetLat, targetLon) {
-        // Directly trigger browser's location popup
-        requestLocationDirectly(resolve, targetLat, targetLon);
-      }
-
-      function showLocationPermissionDialog(
-        type,
-        resolve,
-        targetLat,
-        targetLon
-      ) {
-        // Remove existing dialog if any
-        const existingDialog = document.getElementById("locationDialog");
-        if (existingDialog) {
-          existingDialog.remove();
-        }
-
-        let title, message, buttons;
-
-        switch (type) {
-          case "prompt":
-            title = "📍 Location Permission";
-            message =
-              "আপনার attendance verify করার জন্য আমাদের আপনার location access করতে হবে। Location share করতে চান?";
-            buttons = `
-        <button onclick="triggerLocationRequest()" style="
-          background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-          color: white;
-          border: none;
-          padding: 12px 25px;
-          border-radius: 10px;
-          font-size: 16px;
-          font-weight: bold;
-          cursor: pointer;
-          margin-right: 10px;
-          transition: all 0.3s ease;
-        " onmouseover="this.style.transform='translateY(-2px)'" 
-           onmouseout="this.style.transform='translateY(0px)'">Allow Location</button>
-        <button onclick="skipLocation()" style="
-          background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
-          color: white;
-          border: none;
-          padding: 12px 25px;
-          border-radius: 10px;
-          font-size: 16px;
-          font-weight: bold;
-          cursor: pointer;
-          transition: all 0.3s ease;
-        " onmouseover="this.style.transform='translateY(-2px)'" 
-           onmouseout="this.style.transform='translateY(0px)'">Skip</button>
-      `;
-            break;
-
-          case "denied":
-            title = "⚠️ Location Permission প্রয়োজন";
-            message =
-              'Location permission deny করা হয়েছে। Manual enable করতে:\n\n১. Browser এর address bar এর পাশে 🔒 বা ⚙️ icon এ click করুন\n২. "Location" বা "স্থান" option এ "Allow" করুন\n৩. Page টি refresh করুন\n\nLocation ছাড়াও আপনি login continue করতে পারবেন।';
-            buttons = `
-        <button onclick="skipLocation()" style="
-          background: linear-gradient(135deg, #0f4c75 0%, #3282b8 100%);
-          color: white;
-          border: none;
-          padding: 12px 25px;
-          border-radius: 10px;
-          font-size: 16px;
-          font-weight: bold;
-          cursor: pointer;
-          transition: all 0.3s ease;
-        " onmouseover="this.style.transform='translateY(-2px)'" 
-           onmouseout="this.style.transform='translateY(0px)'">Continue Without Location</button>
-      `;
-            break;
-
-          case "unavailable":
-            title = "📡 Location Unavailable";
-            message =
-              "আপনার device এ location service পাওয়া যাচ্ছে না। অনুগ্রহ করে GPS on করুন বা WiFi connection check করুন।\n\nLocation ছাড়াও আপনি login continue করতে পারবেন।";
-            buttons = `
-        <button onclick="retryLocation()" style="
-          background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-          color: white;
-          border: none;
-          padding: 12px 25px;
-          border-radius: 10px;
-          font-size: 16px;
-          font-weight: bold;
-          cursor: pointer;
-          margin-right: 10px;
-          transition: all 0.3s ease;
-        " onmouseover="this.style.transform='translateY(-2px)'" 
-           onmouseout="this.style.transform='translateY(0px)'">Try Again</button>
-        <button onclick="skipLocation()" style="
-          background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
-          color: white;
-          border: none;
-          padding: 12px 25px;
-          border-radius: 10px;
-          font-size: 16px;
-          font-weight: bold;
-          cursor: pointer;
-          transition: all 0.3s ease;
-        " onmouseover="this.style.transform='translateY(-2px)'" 
-           onmouseout="this.style.transform='translateY(0px)'">Continue Without Location</button>
-      `;
-            break;
-
-          case "timeout":
-            title = "⏱️ Location Timeout";
-            message =
-              "Location পেতে সময় বেশি লাগছে। Network connection check করুন।";
-            buttons = `
-        <button onclick="retryLocation()" style="
-          background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-          color: white;
-          border: none;
-          padding: 12px 25px;
-          border-radius: 10px;
-          font-size: 16px;
-          font-weight: bold;
-          cursor: pointer;
-          margin-right: 10px;
-          transition: all 0.3s ease;
-        " onmouseover="this.style.transform='translateY(-2px)'" 
-           onmouseout="this.style.transform='translateY(0px)'">Try Again</button>
-        <button onclick="skipLocation()" style="
-          background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
-          color: white;
-          border: none;
-          padding: 12px 25px;
-          border-radius: 10px;
-          font-size: 16px;
-          font-weight: bold;
-          cursor: pointer;
-          transition: all 0.3s ease;
-        " onmouseover="this.style.transform='translateY(-2px)'" 
-           onmouseout="this.style.transform='translateY(0px)'">Continue Without Location</button>
-      `;
-            break;
-
-          default:
-            title = "❌ Location Error";
-            message =
-              "Location access করতে সমস্যা হয়েছে। আপনি location ছাড়াও login continue করতে পারবেন।";
-            buttons = `
-        <button onclick="skipLocation()" style="
-          background: linear-gradient(135deg, #0f4c75 0%, #3282b8 100%);
-          color: white;
-          border: none;
-          padding: 12px 25px;
-          border-radius: 10px;
-          font-size: 16px;
-          font-weight: bold;
-          cursor: pointer;
-          transition: all 0.3s ease;
-        " onmouseover="this.style.transform='translateY(-2px)'" 
-           onmouseout="this.style.transform='translateY(0px)'">Continue Anyway</button>
-      `;
-            break;
-        }
-
-        // Create dialog HTML
-        const dialogHTML = `
-    <div id="locationDialog" style="
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.8);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 9999;
-      font-family: 'Poppins', sans-serif;
-    ">
-      <div style="
-        background: white;
-        padding: 30px;
-        border-radius: 20px;
-        max-width: 450px;
-        margin: 20px;
-        text-align: center;
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-      ">
-        <h3 style="
-          color: #0f4c75;
-          margin-bottom: 20px;
-          font-size: 1.3rem;
-          font-weight: 600;
-        ">${title}</h3>
-        <p style="
-          color: #495057;
-          line-height: 1.6;
-          margin-bottom: 25px;
-          white-space: pre-line;
-        ">${message}</p>
-        <div style="display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;">
-          ${buttons}
-        </div>
-      </div>
-    </div>
-  `;
-
-        // Add dialog to page
-        document.body.insertAdjacentHTML("beforeend", dialogHTML);
-
-        // Store resolve function and location params globally for button actions
-        window.locationResolve = resolve;
-        window.locationTargetLat = targetLat;
-        window.locationTargetLon = targetLon;
-      }
-
-      // ✅ NEW: Function to trigger browser's location popup
-      function triggerLocationRequest() {
-        console.log("Triggering browser location request...");
-
-        if (
-          window.locationTargetLat &&
-          window.locationTargetLon &&
-          window.locationResolve
-        ) {
-          requestLocationDirectly(
-            window.locationResolve,
-            window.locationTargetLat,
-            window.locationTargetLon
-          );
-        } else {
-          console.error("Location parameters not found");
-          skipLocation();
-        }
-      }
-
-      // ✅ NEW: Function to retry location request
-      function retryLocation() {
-        console.log("Retrying location request...");
-
-        if (
-          window.locationTargetLat &&
-          window.locationTargetLon &&
-          window.locationResolve
-        ) {
-          requestLocationDirectly(
-            window.locationResolve,
-            window.locationTargetLat,
-            window.locationTargetLon
-          );
-        } else {
-          console.error("Location parameters not found");
-          skipLocation();
-        }
-      }
-
-      // ✅ NEW: Function to skip location and continue
-      function skipLocation() {
-        console.log("Skipping location request...");
-
-        hideLocationPermissionDialog();
-
-        if (window.locationResolve) {
-          window.locationResolve({
-            lat: "Unknown",
-            lon: "Unknown",
-            distance: "Unknown",
-          });
-        }
-      }
-
-      function hideLocationPermissionDialog() {
-        const dialog = document.getElementById("locationDialog");
-        if (dialog) {
-          dialog.remove();
-        }
-
-        // Clean up global variables
-        window.locationResolve = null;
-        window.locationTargetLat = null;
-        window.locationTargetLon = null;
       }
 
       function isWithinRadius(lat1, lon1, lat2, lon2, radiusMeters) {
@@ -1627,7 +1409,7 @@
 
       // Google Apps Script Web App URL (Replace with your deployed URL)
       const WEB_APP_URL =
-        "https://script.google.com/macros/s/AKfycbwKrCMUDbF5k6HAnHiE94gV5jZ52rXGTDepez8OkqxA1YVXJcBUsvflSbBgcr7b5UsO/exec"; // REPLACE WITH YOUR DEPLOYED WEB APP URL
+        "https://script.google.com/macros/s/AKfycbxaHIEzTGoz1Ok_d9vVSI2F-jj5nMUSUjy4qcMr4-d3k5DG7NK30vZDmPhnBTgSwXuF/exec"; // REPLACE WITH YOUR DEPLOYED WEB APP URL
 
       // This will now be populated dynamically
       let studentsData = {};
@@ -1925,38 +1707,49 @@
         const loginButton = document.querySelector(".login-box button");
         const loadingOverlay = document.getElementById("loadingOverlay");
 
-        loadingOverlay.classList.remove("hidden");
-        loadingOverlay.classList.add("show");
-        loginButton.disabled = true;
-
         if (!staffId || !staffPassword) {
           alert("অনুগ্রহ করে ID ও Password দিন।");
-          loadingOverlay.classList.remove("show");
-          loginButton.disabled = false;
           return;
         }
 
         if (!(staffId in staffCredentials)) {
           alert("এই ID পাওয়া যায়নি!");
-          loadingOverlay.classList.remove("show");
-          loginButton.disabled = false;
           return;
         }
 
         if (staffCredentials[staffId].password !== staffPassword) {
           alert("Password ভুল!");
-          loadingOverlay.classList.remove("show");
-          loginButton.disabled = false;
           return;
         }
 
-        try {
-          // ✅ Step 1: Get user location (with user-friendly prompts)
-          console.log("Requesting user location...");
-          staffLocation = await getUserLocation();
-          console.log("Location result:", staffLocation);
+        if (!floor) {
+          alert("অনুগ্রহ করে একটি ফ্লোর নির্বাচন করুন।");
+          return;
+        }
 
-          // ✅ UPDATED: Pass location data to device verification (continue even if location is unknown)
+        // ✅ NEW: Check location availability first
+        const locationStatus = await checkLocationAvailability();
+
+        if (!locationStatus.available) {
+          alert("আপনার device location support করে না।");
+          return;
+        }
+
+        if (!locationStatus.enabled) {
+          showLocationAlert();
+          return;
+        }
+
+        // Rest of your existing startAttendance code remains the same...
+        loadingOverlay.classList.remove("hidden");
+        loadingOverlay.classList.add("show");
+        loginButton.disabled = true;
+
+        try {
+          // Step 1: Get user location first
+          staffLocation = await getUserLocation();
+
+          // UPDATED: Pass location data to device verification
           const staffNameFromCredentials = staffCredentials[staffId].name;
           const deviceVerification = await verifyDeviceAccess(
             staffId,
@@ -1971,7 +1764,6 @@
             return;
           }
 
-          // Optional: Show success message with device info for first-time registration
           if (
             deviceVerification.message &&
             deviceVerification.message.includes("registered successfully")
@@ -1979,24 +1771,16 @@
             console.log("Device registered:", deviceVerification.message);
           }
         } catch (error) {
-          console.error("Device verification error:", error);
           alert("Device verification failed. Please try again.");
           loadingOverlay.classList.remove("show");
           loginButton.disabled = false;
           return;
         }
 
-        if (!floor) {
-          alert("অনুগ্রহ করে একটি ফ্লোর নির্বাচন করুন।");
-          loadingOverlay.classList.remove("show");
-          loginButton.disabled = false;
-          return;
-        }
-
+        // Continue with the rest of your existing code...
         staffName = staffCredentials[staffId].name;
         selectedFloor = floor;
 
-        // ✅ Step 2: Fetch student data and server date
         try {
           const studentResponse = await fetch(
             `${WEB_APP_URL}?action=getStudentsByFloor&floor=${selectedFloor}`
@@ -2025,7 +1809,6 @@
           const dateData = await dateResponse.json();
           serverDate = dateData.date;
 
-          // ✅ Step 3: Proceed to attendance UI
           document.getElementById("loginScreen").classList.add("hidden");
           document
             .getElementById("attendanceSystem")
@@ -2462,6 +2245,98 @@
           .getElementById("sendBtn")
           .addEventListener("click", addBlastEffect);
       });
+
+      function checkLocationAvailability() {
+        return new Promise((resolve) => {
+          if (!navigator.geolocation) {
+            resolve({ available: false, enabled: false });
+            return;
+          }
+
+          // Try to get current position to check if it's enabled
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              resolve({ available: true, enabled: true });
+            },
+            (error) => {
+              if (error.code === 1) {
+                // PERMISSION_DENIED
+                resolve({ available: true, enabled: false });
+              } else {
+                resolve({ available: true, enabled: false });
+              }
+            },
+            { timeout: 5000 }
+          );
+        });
+      }
+
+      // Show location alert modal
+      function showLocationAlert() {
+        const overlay = document.getElementById("locationAlertOverlay");
+        const alert = document.getElementById("locationAlert");
+
+        overlay.classList.add("show");
+        alert.classList.add("show");
+      }
+
+      // Close location alert modal
+      function closeLocationAlert() {
+        const overlay = document.getElementById("locationAlertOverlay");
+        const alert = document.getElementById("locationAlert");
+
+        overlay.classList.remove("show");
+        alert.classList.remove("show");
+      }
+
+      // Request location permission
+      function requestLocationPermission() {
+        closeLocationAlert();
+
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            // Success - location is now enabled
+            alert(
+              "Location permission দেওয়া হয়েছে! এখন আবার login করার চেষ্টা করুন।"
+            );
+          },
+          (error) => {
+            if (error.code === 1) {
+              alert(
+                "Location permission দেওয়া হয়নি। অনুগ্রহ করে browser settings থেকে manually location enable করুন।"
+              );
+            } else {
+              alert(
+                "Location access করতে সমস্যা হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।"
+              );
+            }
+          }
+        );
+      }
     </script>
+
+    <div id="locationAlertOverlay" class="location-alert-overlay">
+      <div id="locationAlert" class="location-alert">
+        <h3>📍 Location Permission প্রয়োজন</h3>
+        <p>
+          অ্যাটেনডেন্স নিতে আপনার location on করা প্রয়োজন। অনুগ্রহ করে "Allow"
+          বাটনে ক্লিক করুন।
+        </p>
+        <div class="location-alert-buttons">
+          <button
+            class="location-btn location-allow-btn"
+            onclick="requestLocationPermission()"
+          >
+            📍 Allow Location
+          </button>
+          <button
+            class="location-btn location-cancel-btn"
+            onclick="closeLocationAlert()"
+          >
+            ❌ Cancel
+          </button>
+        </div>
+      </div>
+    </div>
   </body>
 </html>
