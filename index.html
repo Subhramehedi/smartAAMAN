@@ -1115,6 +1115,64 @@
         distance: null,
       };
 
+      // Device information detection functions
+      function getOperatingSystem() {
+        const userAgent = navigator.userAgent;
+        if (userAgent.indexOf("Win") !== -1) return "Windows";
+        if (userAgent.indexOf("Mac") !== -1) return "MacOS";
+        if (userAgent.indexOf("Linux") !== -1) return "Linux";
+        if (userAgent.indexOf("Android") !== -1) return "Android";
+        if (
+          userAgent.indexOf("iPhone") !== -1 ||
+          userAgent.indexOf("iPad") !== -1
+        )
+          return "iOS";
+        return "Unknown OS";
+      }
+
+      function getBrowserName() {
+        const userAgent = navigator.userAgent;
+        if (
+          userAgent.indexOf("Chrome") !== -1 &&
+          userAgent.indexOf("Edge") === -1
+        )
+          return "Chrome";
+        if (userAgent.indexOf("Firefox") !== -1) return "Firefox";
+        if (
+          userAgent.indexOf("Safari") !== -1 &&
+          userAgent.indexOf("Chrome") === -1
+        )
+          return "Safari";
+        if (userAgent.indexOf("Edge") !== -1) return "Edge";
+        if (
+          userAgent.indexOf("Opera") !== -1 ||
+          userAgent.indexOf("OPR") !== -1
+        )
+          return "Opera";
+        return "Unknown Browser";
+      }
+
+      function getDeviceName() {
+        const platform = navigator.platform || "Unknown Platform";
+        const userAgent = navigator.userAgent;
+
+        // For mobile devices, try to get more specific info
+        if (userAgent.indexOf("Android") !== -1) {
+          const match = userAgent.match(/Android [0-9\.]+; (.+?)\)/);
+          return match ? match[1] : "Android Device";
+        }
+
+        if (userAgent.indexOf("iPhone") !== -1) {
+          return "iPhone";
+        }
+
+        if (userAgent.indexOf("iPad") !== -1) {
+          return "iPad";
+        }
+
+        return platform;
+      }
+
       function getUserLocation() {
         const targetLat = 22.5862547;
         const targetLon = 88.2748575;
@@ -1234,10 +1292,22 @@
       // Device verification function
       async function verifyDeviceAccess(staffId) {
         const deviceFingerprint = generateDeviceFingerprint();
+        const deviceName = getDeviceName();
+        const osName = getOperatingSystem();
+        const browserName = getBrowserName();
 
         try {
+          const verifyParams = new URLSearchParams({
+            action: "verifyDevice",
+            staffId: staffId,
+            deviceFingerprint: deviceFingerprint,
+            deviceName: deviceName,
+            osName: osName,
+            browserName: browserName,
+          });
+
           const response = await fetch(
-            `${WEB_APP_URL}?action=verifyDevice&staffId=${staffId}&deviceFingerprint=${deviceFingerprint}`
+            `${WEB_APP_URL}?${verifyParams.toString()}`
           );
           if (!response.ok)
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -1261,7 +1331,7 @@
 
       // Google Apps Script Web App URL (Replace with your deployed URL)
       const WEB_APP_URL =
-        "https://script.google.com/macros/s/AKfycbz08MKgrNzXfdYo7wZW9Ex_uDoYZizDpDKwuj0pB_SiE3VOEMlUXbDMrNo2Vo1pCwzcuQ/exec"; // REPLACE WITH YOUR DEPLOYED WEB APP URL
+        "https://script.google.com/macros/s/AKfycbzosqtTJRnYqs7UGxVKxIhp_I9SIwAx9H0mLaO4b_Ds18si5cfhquUdsAKeNpwrFWq50A/exec"; // REPLACE WITH YOUR DEPLOYED WEB APP URL
 
       // This will now be populated dynamically
       let studentsData = {};
@@ -1572,7 +1642,6 @@
           return;
         }
 
-        // NEW: Device verification step
         try {
           const deviceVerification = await verifyDeviceAccess(staffId);
           if (deviceVerification.status === "error") {
@@ -1580,6 +1649,14 @@
             loadingOverlay.classList.remove("show");
             loginButton.disabled = false;
             return;
+          }
+
+          // Optional: Show success message with device info for first-time registration
+          if (
+            deviceVerification.message &&
+            deviceVerification.message.includes("registered successfully")
+          ) {
+            console.log("Device registered:", deviceVerification.message);
           }
         } catch (error) {
           alert("Device verification failed. Please try again.");
