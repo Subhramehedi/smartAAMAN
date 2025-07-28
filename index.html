@@ -3,14 +3,120 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Al Ameen Home</title>
+    <title>Al Ameen Mission Academy Nayabaz Attendance Tracker</title>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- Google Fonts - Poppins for a more modern look -->
     <link
       href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap"
       rel="stylesheet"
     />
     <style>
+      /* Existing CSS styles remain here */
+      .logo {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        margin: 0 auto 10px;
+        overflow: hidden;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+      }
+
+      .room-buttons-wrapper {
+        overflow-x: auto;
+        padding-bottom: 5px;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+      }
+      .room-buttons-wrapper::-webkit-scrollbar {
+        display: none;
+      }
+
+      @media (max-width: 480px) {
+        .room-btn {
+          font-size: 11px;
+          padding: 8px 10px;
+          white-space: nowrap;
+        }
+      }
+
+      .room-buttons {
+        display: flex;
+        gap: 10px;
+        flex-wrap: nowrap;
+        min-width: max-content;
+      }
+
+      /* --- NEW: Blast Effect CSS --- */
+      .blast-effect {
+        position: relative;
+        overflow: hidden;
+        z-index: 1; /* Ensure the blast is above other content */
+      }
+
+      .blast-effect::before {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 0;
+        height: 0;
+        background: radial-gradient(
+          circle,
+          rgba(255, 255, 255, 0.8) 0%,
+          rgba(255, 255, 255, 0) 70%
+        );
+        border-radius: 50%;
+        opacity: 0;
+        transform: translate(-50%, -50%);
+        transition: none; /* Reset transition for immediate effect */
+        pointer-events: none; /* Allow clicks to pass through */
+        z-index: 2;
+      }
+
+      .blast-effect.active::before {
+        animation: blast 0.4s ease-out forwards;
+      }
+
+      @keyframes blast {
+        0% {
+          width: 0;
+          height: 0;
+          opacity: 0.8;
+        }
+        100% {
+          width: 200%; /* Expand beyond button size */
+          height: 200%;
+          opacity: 0;
+        }
+      }
+      /* --- END NEW: Blast Effect CSS --- */
+
+      .nav-btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 20px;
+        background: linear-gradient(135deg, #0f4c75 0%, #3282b8 100%);
+        color: white;
+        font-size: 14px;
+        font-weight: bold;
+        box-shadow: 0 4px 8px rgba(15, 76, 117, 0.3);
+        transition: all 0.3s ease;
+      }
+      .nav-btn:hover:not(:disabled) {
+        transform: translateY(-3px); /* Enhanced hover */
+        background: linear-gradient(135deg, #3282b8 0%, #0f4c75 100%);
+        box-shadow: 0 6px 12px rgba(15, 76, 117, 0.4);
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
       body {
-        font-family: "Poppins", sans-serif;
+        font-family: "Poppins", sans-serif; /* Updated font */
         background: linear-gradient(
           135deg,
           #0f4c75 0%,
@@ -18,160 +124,2052 @@
           #bbe1fa 100%
         );
         min-height: 100vh;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: flex-start;
-        padding: 30px 20px;
-        margin: 0;
+        padding: 10px;
       }
 
-      .logo-animation-container {
+      .container {
+        max-width: 400px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
         overflow: hidden;
-        height: 80px;
-        margin-bottom: 15px;
-        display: flex;
-        align-items: flex-end;
-        justify-content: center;
+      }
+
+      .header {
+        background: linear-gradient(135deg, #0f4c75 0%, #3282b8 100%);
+        padding: 20px;
+        text-align: center;
+        color: white;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .header::before {
+        content: "";
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="islamic-pattern" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="10" cy="10" r="2" fill="rgba(255,255,255,0.1)"/><path d="M10 5 L15 10 L10 15 L5 10 Z" fill="rgba(255,255,255,0.05)"/></pattern></defs><rect width="100" height="100" fill="url(%23islamic-pattern)"/></svg>')
+          repeat;
+        z-index: 1;
+      }
+
+      .header-content {
+        position: relative;
+        z-index: 2;
       }
 
       .logo {
-        width: 70px;
-        height: 70px;
+        width: 60px;
+        height: 60px;
         background: linear-gradient(135deg, #ffd700 0%, #ffa500 100%);
         border-radius: 50%;
+        margin: 0 auto 10px;
         display: flex;
         align-items: center;
         justify-content: center;
         font-size: 24px;
         box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
         border: 3px solid rgba(255, 255, 255, 0.3);
-        animation: logoSlideUpFadeIn 1s ease-out forwards;
-        transform: translateY(100%);
-        opacity: 0;
       }
 
-      .logo img {
-        width: 100%;
-        height: 100%;
-        border-radius: 50%;
+      /* --- NEW: Logo Animation CSS --- */
+      .logo-animation-container {
+        /* This container will hide the overflow and apply the animation */
+        overflow: hidden; /* Crucial for the slide-up effect */
+        height: 80px; /* বাড়ানো হল */
+        margin-bottom: 10px; /* Match the height of your .logo */
+        margin: 0 auto 10px; /* Inherit margin from .logo */
+        display: flex; /* To center the logo within it */
+        align-items: flex-end; /* Start logo at the bottom of the container */
+        justify-content: center;
+      }
+
+      .logo-animation-container .logo {
+        /* Apply animation to the actual logo element */
+        animation: logoSlideUpFadeIn 1s ease-out forwards; /* 1 second duration, smooth ease-out */
+        transform: translateY(
+          100%
+        ); /* Start completely below its final position */
+        opacity: 0; /* Start invisible */
       }
 
       @keyframes logoSlideUpFadeIn {
         0% {
-          transform: translateY(100%);
-          opacity: 0;
+          transform: translateY(100%); /* Start from below */
+          opacity: 0; /* Start invisible */
         }
         60% {
-          opacity: 1;
+          opacity: 1; /* Fade in quickly */
         }
         100% {
-          transform: translateY(0);
-          opacity: 1;
+          transform: translateY(0); /* End at its natural position */
+          opacity: 1; /* Fully visible */
+        }
+      }
+      /* --- END NEW: Logo Animation CSS --- */
+
+      .header h1 {
+        font-size: 1.3rem;
+        margin-bottom: 10px;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        font-weight: 600;
+      }
+
+      .date-selector {
+        background: rgba(255, 255, 255, 0.2);
+        padding: 15px;
+        border-radius: 10px;
+        margin-top: 10px;
+      }
+
+      .date-inputs {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+      }
+
+      .date-inputs select {
+        padding: 8px;
+        border: none;
+        border-radius: 5px;
+        background: white;
+        font-size: 14px;
+      }
+
+      .room-nav {
+        padding: 20px;
+        background: #f8f9fa;
+        border-bottom: 1px solid #e9ecef;
+      }
+
+      .room-buttons {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        justify-content: center;
+        margin-bottom: 15px;
+      }
+
+      .room-btn {
+        padding: 10px 15px;
+        border: none;
+        border-radius: 20px;
+        background: #e9ecef;
+        color: #495057;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 12px;
+      }
+
+      .room-btn.active {
+        background: linear-gradient(135deg, #0f4c75 0%, #3282b8 100%);
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(15, 76, 117, 0.4);
+      }
+
+      .navigation {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 15px;
+      }
+
+      .nav-btn {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 15px;
+        background: #6c757d;
+        color: white;
+        cursor: pointer;
+        font-size: 12px;
+      }
+
+      .nav-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .search-section {
+        padding: 20px;
+        background: #f8f9fa;
+        border-bottom: 1px solid #e9ecef;
+      }
+
+      .search-input {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid #e9ecef;
+        border-radius: 10px;
+        font-size: 14px;
+        transition: border-color 0.3s ease;
+      }
+
+      .search-input:focus {
+        outline: none;
+        border-color: #3282b8;
+        box-shadow: 0 0 10px rgba(50, 130, 184, 0.2);
+      }
+
+      .search-results {
+        margin-top: 10px;
+        max-height: 200px;
+        overflow-y: auto;
+      }
+
+      .search-result-item {
+        padding: 10px;
+        background: white;
+        border-radius: 8px;
+        margin-bottom: 5px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border: 1px solid #e9ecef;
+      }
+
+      .search-result-item:hover {
+        background: #f8f9fa;
+        transform: translateY(-1px);
+      }
+
+      .search-result-name {
+        font-weight: 600;
+        color: #495057;
+        font-size: 14px;
+      }
+
+      .search-result-details {
+        color: #6c757d;
+        font-size: 12px;
+      }
+
+      .content {
+        padding: 20px;
+        max-height: 60vh;
+        overflow-y: auto;
+      }
+
+      .room-title {
+        text-align: center;
+        margin-bottom: 20px;
+        color: #495057;
+        font-size: 1.2rem;
+        font-weight: 600;
+      }
+
+      .student-card {
+        background: #f8f9fa;
+        border-radius: 15px;
+        padding: 15px;
+        margin-bottom: 10px;
+        border: 2px solid transparent;
+        transition: all 0.3s ease;
+      }
+
+      .student-card:hover {
+        transform: translateY(-3px); /* Enhanced hover */
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15); /* Enhanced shadow */
+      }
+
+      .student-card.present {
+        border-color: #0f4c75;
+        background: linear-gradient(135deg, #e8f4fd 0%, #d1e7f0 100%);
+        border-left: 4px solid #0f4c75;
+      }
+
+      .student-card.absent {
+        border-color: #dc3545;
+        background: linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%);
+        border-left: 4px solid #dc3545;
+      }
+
+      .student-card.highlighted {
+        border-color: #ffd700;
+        background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+        border-left: 4px solid #ffd700;
+        animation: highlight 1s ease-in-out;
+      }
+
+      @keyframes highlight {
+        0% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.05);
+        }
+        100% {
+          transform: scale(1);
         }
       }
 
-      .card {
-        background: white;
-        padding: 30px 20px;
-        border-radius: 20px;
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
-        text-align: center;
-        max-width: 400px;
-        width: 100%;
+      .student-info {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
       }
 
-      h1 {
-        margin-bottom: 20px;
-        color: #0f4c75;
-        font-weight: 700;
-      }
-
-      .btn {
-        width: 100%;
-        padding: 15px;
-        margin: 10px 0;
-        font-size: 16px;
+      .student-name {
         font-weight: 600;
+        color: #495057;
+        font-size: 14px;
+      }
+
+      .student-reg {
+        color: #6c757d;
+        font-size: 12px;
+      }
+
+      .attendance-status {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .status-indicator {
+        padding: 5px 10px;
+        border-radius: 15px;
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+      .status-present {
+        background: linear-gradient(135deg, #0f4c75 0%, #3282b8 100%);
+        color: white;
+        border-radius: 15px;
+        padding: 5px 12px;
+        font-size: 11px;
+        font-weight: 600;
+        box-shadow: 0 2px 4px rgba(15, 76, 117, 0.3);
+      }
+
+      .status-absent {
+        background: #dc3545;
+        color: white;
+      }
+
+      .toggle-btn {
+        padding: 5px 10px;
+        border: none;
+        border-radius: 15px;
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+      }
+
+      .toggle-present {
+        background: linear-gradient(135deg, #0f4c75 0%, #3282b8 100%);
+        color: white;
+        border-radius: 15px;
+        padding: 5px 12px;
+        font-size: 11px;
+        box-shadow: 0 2px 4px rgba(15, 76, 117, 0.3);
+      }
+
+      .toggle-absent {
+        background: #dc3545;
+        color: white;
+      }
+
+      .actions {
+        padding: 20px;
+        background: #f8f9fa;
+        border-top: 1px solid #e9ecef;
+      }
+
+      .action-btn {
+        width: 100%;
+        padding: 12px;
         border: none;
         border-radius: 10px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 10px;
+        transition: all 0.3s ease;
+      }
+
+      .mark-all-btn {
+        background: linear-gradient(135deg, #0f4c75 0%, #3282b8 100%);
+        color: white;
+        margin-bottom: 10px;
+        box-shadow: 0 4px 8px rgba(15, 76, 117, 0.3);
+      }
+
+      .mark-all-btn:hover {
+        background: linear-gradient(135deg, #3282b8 0%, #0f4c75 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(15, 76, 117, 0.4);
+      }
+
+      .export-btn {
+        background: linear-gradient(135deg, #ffd700 0%, #ffa500 100%);
+        color: #0f4c75;
+        font-weight: bold;
+        box-shadow: 0 4px 8px rgba(255, 215, 0, 0.3);
+      }
+
+      .export-btn:hover:not(:disabled) {
+        background: linear-gradient(135deg, #ffa500 0%, #ffd700 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(255, 215, 0, 0.4);
+      }
+
+      .export-btn:disabled {
+        background: #6c757d;
+        cursor: not-allowed;
+      }
+
+      .progress {
+        margin-top: 15px;
+        background: #e9ecef;
+        border-radius: 10px;
+        height: 8px;
+        overflow: hidden;
+      }
+
+      .progress-bar {
+        height: 100%;
+        background: linear-gradient(135deg, #0f4c75 0%, #3282b8 100%);
+        transition: width 0.3s ease;
+        border-radius: 10px;
+      }
+
+      .progress-text {
+        text-align: center;
+        margin-top: 5px;
+        font-size: 12px;
+        color: #6c757d;
+      }
+
+      .stats {
+        display: flex;
+        justify-content: space-around;
+        margin-bottom: 15px;
+        padding: 10px;
+        background: white;
+        border-radius: 10px;
+      }
+
+      .stat-item {
+        text-align: center;
+      }
+
+      .stat-number {
+        font-size: 18px;
+        font-weight: bold;
+        color: #495057;
+      }
+
+      .stat-label {
+        font-size: 12px;
+        color: #6c757d;
+      }
+
+      .stat-present {
+        color: #0f4c75;
+        font-weight: bold;
+      }
+
+      .stat-absent {
+        color: #dc3545;
+      }
+
+      /* New styles for login screen */
+      .login-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        padding: 20px;
+        background: linear-gradient(
+          135deg,
+          #0f4c75 0%,
+          #3282b8 50%,
+          #bbe1fa 100%
+        );
+      }
+
+      .login-box {
+        background: white;
+        padding: 40px;
+        border-radius: 20px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        text-align: center;
+        width: 100%;
+        max-width: 350px;
+        min-height: 550px;
+        position: relative;
+        position: absolute;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+      }
+
+      .login-box h2 {
+        color: #0f4c75;
+        margin-bottom: 20px;
+        font-size: 1.5rem;
+      }
+
+      .login-box input,
+      .login-box select {
+        width: calc(100% - 20px);
+        padding: 12px;
+        margin-bottom: 15px;
+        border: 1px solid #e9ecef;
+        border-radius: 10px;
+        font-size: 16px;
+      }
+
+      .login-box input:focus,
+      .login-box select:focus {
+        outline: none;
+        border-color: #3282b8;
+        box-shadow: 0 0 0 3px rgba(50, 130, 184, 0.2); /* Enhanced focus */
+      }
+
+      .login-box button {
+        width: 100%;
+        padding: 12px;
+        border: none;
+        border-radius: 10px;
+        background: linear-gradient(135deg, #0f4c75 0%, #3282b8 100%);
+        color: white;
+        font-size: 16px;
+        font-weight: bold;
         cursor: pointer;
         transition: all 0.3s ease;
       }
 
-      .btn-staff {
-        background: linear-gradient(135deg, #0f4c75 0%, #3282b8 100%);
+      .login-box button:hover {
+        background: linear-gradient(135deg, #3282b8 0%, #0f4c75 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(15, 76, 117, 0.4);
+      }
+
+      .hidden {
+        display: none !important;
+      }
+
+      @media (max-width: 480px) {
+        .container {
+          margin: 0;
+          border-radius: 0;
+          min-height: 100vh;
+        }
+
+        .date-inputs {
+          flex-direction: column;
+          gap: 5px;
+        }
+
+        .date-inputs select {
+          width: 100%;
+        }
+
+        .student-info {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 10px;
+        }
+
+        .attendance-status {
+          width: 100%;
+          justify-content: space-between;
+        }
+      }
+
+      /* --- NEW: Loading Overlay CSS (Modified) --- */
+      .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.85);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
+      }
+
+      .loading-overlay.show {
+        opacity: 1;
+        visibility: visible;
+      }
+
+      .loading-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255, 255, 255, 0.1);
+        padding: 30px;
+        border-radius: 20px;
+        box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+      }
+
+      .loading-logo-wrapper {
+        position: relative;
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 20px;
+        box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.7);
+        animation: pulse 2s infinite;
+      }
+
+      .loading-logo {
+        width: 90%;
+        height: 90%;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 3px solid rgba(255, 255, 255, 0.5);
+      }
+
+      @keyframes pulse {
+        0% {
+          box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.7);
+        }
+        70% {
+          box-shadow: 0 0 0 20px rgba(255, 215, 0, 0);
+        }
+        100% {
+          box-shadow: 0 0 0 0 rgba(255, 215, 0, 0);
+        }
+      }
+
+      .loading-text {
+        color: white;
+        font-size: 1.5rem;
+        font-weight: bold;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+      }
+
+      .loading-ring {
+        border: 8px solid rgba(255, 255, 255, 0.3);
+        border-top: 8px solid #ffd700;
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        animation: spin 1s linear infinite;
+        margin-top: 20px;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* NEW: Camera Modal Styles */
+      .camera-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.9);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
+      }
+
+      .camera-modal.show {
+        opacity: 1;
+        visibility: visible;
+      }
+
+      .camera-container {
+        width: 90%;
+        max-width: 400px;
+        background: white;
+        border-radius: 20px;
+        padding: 20px;
+        text-align: center;
+      }
+
+      .camera-video {
+        width: 100%;
+        max-width: 320px;
+        height: 240px;
+        border-radius: 10px;
+        background: #000;
+        margin-bottom: 20px;
+        transform: scaleX(-1);
+      }
+
+      .camera-canvas {
+        display: none;
+      }
+
+      .camera-controls {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+
+      .camera-btn {
+        padding: 12px 20px;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+      }
+
+      .camera-capture {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
         color: white;
       }
 
-      .btn-search {
+      .camera-retake {
         background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);
         color: white;
       }
 
-      .btn:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+      .camera-cancel {
+        background: linear-gradient(135deg, #dc3545 0%, #e83e8c 100%);
+        color: white;
       }
 
-      #contentArea {
-        margin-top: 30px;
+      .camera-send {
+        background: linear-gradient(135deg, #007bff 0%, #6610f2 100%);
+        color: white;
+      }
+
+      .camera-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      }
+
+      .captured-image {
         width: 100%;
-        max-width: 420px;
+        max-width: 320px;
+        height: 240px;
+        border-radius: 10px;
+        object-fit: cover;
+        margin-bottom: 20px;
       }
     </style>
   </head>
   <body>
-    <!-- Logo Section -->
-    <div class="logo-animation-container">
-      <div class="logo">
-        <img
-          src="https://play-lh.googleusercontent.com/gufR1twVlU6_SzC-iIAD_8bLLf-XYVAwwwwJF-cphD32IX0GeHNLi4GrN42hRYDHg-A"
-          alt="Logo"
+    <!-- Login Screen -->
+    <div id="loginScreen" class="login-container">
+      <div class="login-box">
+        <!-- --- NEW: Logo Animation Container --- -->
+        <div class="logo-animation-container">
+          <div class="logo">
+            <img
+              src="https://play-lh.googleusercontent.com/gufR1twVlU6_SzC-iIAD_8bLLf-XYVAwwwwJF-cphD32IX0GeHNLi4GrN42hRYDHg-A"
+              alt="Logo"
+              style="width: 100%; height: 100%; border-radius: 50%"
+            />
+          </div>
+        </div>
+        <!-- --- END NEW: Logo Animation Container --- -->
+        <h2>Staff Login</h2>
+
+        <input
+          type="text"
+          id="staffIdInput"
+          placeholder="Staff ID লিখুন"
+          oninput="fillStaffName()"
         />
+        <input
+          type="text"
+          id="staffNameInput"
+          placeholder="স্টাফের নাম"
+          disabled
+        />
+        <input
+          type="password"
+          id="staffPasswordInput"
+          placeholder="পাসওয়ার্ড লিখুন"
+        />
+
+        <select id="floorSelect">
+          <option value="">ফ্লোর নির্বাচন করুন</option>
+          <option value="old">Old Building (Room 14,15 etc.)</option>
+          <option value="1">ফ্লোর 1 (Room 101-105)</option>
+          <option value="2">ফ্লোর 2 (Room 201-205)</option>
+          <option value="3">ফ্লোর 3 (Room 301-305)</option>
+          <option value="4">ফ্লোর 4 (Room 401-404)</option>
+          <option value="5">ফ্লোর 5 (Room 501-505)</option>
+          <option value="6">ফ্লোর 6 (Room 601-605)</option>
+        </select>
+        <!-- Added blast-effect class -->
+        <button class="blast-effect" onclick="startAttendance()">
+          শুরু করুন
+        </button>
+
+        <!-- 🔍 NEW: Search Student Button -->
+        <button
+          class="blast-effect"
+          onclick="window.open('student search.html', '_blank')"
+          style="
+            margin-top: 10px;
+            background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);
+            color: white;
+          "
+        >
+          🔍 Search Student
+        </button>
       </div>
     </div>
 
-    <div class="card">
-      <h1>Al Ameen Mission Academy Nayabaz</h1>
-      <button class="btn btn-staff" onclick="loadSection('index')">
-        🧑‍🏫 Staff Login
-      </button>
-      <button class="btn btn-search" onclick="loadSection('search')">
-        🔍 Search Student
-      </button>
+    <!-- Main Attendance System -->
+    <div id="attendanceSystem" class="container hidden">
+      <div class="header">
+        <div class="header-content">
+          <div class="logo">
+            <img
+              src="https://play-lh.googleusercontent.com/gufR1twVlU6_SzC-iIAD_8bLLf-XYVAwwwwJF-cphD32IX0GeHNLi4GrN42hRYDHg-A"
+              alt="Logo"
+              style="width: 100%; height: 100%; border-radius: 50%"
+            />
+          </div>
+
+          <h1>Al Ameen Mission Academy Nayabaz</h1>
+          <p style="font-size: 14px; opacity: 0.9; margin-top: 5px">
+            📋 Attendance Tracker
+          </p>
+        </div>
+        <div class="date-selector">
+          <div class="date-inputs">
+            <select id="daySelect" disabled></select>
+            <select id="monthSelect" disabled></select>
+            <select id="yearSelect" disabled></select>
+          </div>
+        </div>
+      </div>
+
+      <div class="search-section">
+        <input
+          type="text"
+          id="searchInput"
+          class="search-input"
+          placeholder="🔍 নাম বা রেজিস্ট্রেশন নম্বর দিয়ে খুঁজুন..."
+          oninput="searchStudents()"
+        />
+        <div id="searchResults" class="search-results"></div>
+      </div>
+
+      <div class="room-nav">
+        <div class="room-buttons-wrapper">
+          <div class="room-buttons" id="roomButtons"></div>
+        </div>
+
+        <div class="navigation">
+          <!-- Added blast-effect class -->
+          <button
+            class="nav-btn blast-effect"
+            id="prevBtn"
+            onclick="navigateRoom(-1)"
+          >
+            ← Previous
+          </button>
+          <!-- Added blast-effect class -->
+          <button
+            class="nav-btn blast-effect"
+            id="nextBtn"
+            onclick="navigateRoom(1)"
+          >
+            Next →
+          </button>
+        </div>
+      </div>
+
+      <div class="content">
+        <div class="room-title" id="roomTitle"></div>
+
+        <div class="stats">
+          <div class="stat-item">
+            <div class="stat-number stat-present" id="presentCount">0</div>
+            <div class="stat-label">হাজির</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-number stat-absent" id="absentCount">0</div>
+            <div class="stat-label">অনুপস্থিত</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-number" id="totalCount">0</div>
+            <div class="stat-label">মোট</div>
+          </div>
+        </div>
+
+        <div id="studentList"></div>
+      </div>
+
+      <div class="actions">
+        <!-- Added blast-effect class -->
+        <button
+          class="action-btn mark-all-btn blast-effect"
+          onclick="markAllPresent()"
+        >
+          ✅ সবাইকে হাজির করুন
+        </button>
+        <!-- Added blast-effect class -->
+        <button
+          class="action-btn export-btn blast-effect"
+          id="submitBtn"
+          onclick="submitAttendance()"
+        >
+          📸 ছবি তুলে অ্যাটেনডেন্স জমা দিন
+        </button>
+        <div class="progress">
+          <div class="progress-bar" id="progressBar"></div>
+        </div>
+        <div class="progress-text" id="progressText"></div>
+      </div>
     </div>
 
-    <div id="contentArea"></div>
+    <!-- Camera Modal -->
+    <div id="cameraModal" class="camera-modal">
+      <div class="camera-container">
+        <h3 style="color: #0f4c75; margin-bottom: 20px">📸 ছবি তুলুন</h3>
+
+        <video
+          id="cameraVideo"
+          class="camera-video"
+          autoplay
+          playsinline
+        ></video>
+        <canvas id="cameraCanvas" class="camera-canvas"></canvas>
+        <img id="capturedImage" class="captured-image" style="display: none" />
+
+        <div class="camera-controls">
+          <button
+            id="captureBtn"
+            class="camera-btn camera-capture"
+            onclick="capturePhoto()"
+          >
+            📸 ছবি তুলুন
+          </button>
+          <button
+            id="retakeBtn"
+            class="camera-btn camera-retake"
+            onclick="retakePhoto()"
+            style="display: none"
+          >
+            🔄 আবার তুলুন
+          </button>
+          <button
+            id="sendBtn"
+            class="camera-btn camera-send"
+            onclick="sendPhotoAndSubmit()"
+            style="display: none"
+          >
+            📤 পাঠান
+          </button>
+          <button class="camera-btn camera-cancel" onclick="closeCameraModal()">
+            ❌ বাতিল
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- --- NEW: Loading Overlay HTML (Modified) --- -->
+    <div id="loadingOverlay" class="loading-overlay hidden">
+      <div class="loading-content">
+        <div class="loading-logo-wrapper">
+          <img
+            src="https://play-lh.googleusercontent.com/gufR1twVlU6_SzC-iIAD_8bLLf-XYVAwwwwJF-cphD32IX0GeHNLi4GrN42hRYDHg-A"
+            alt="Logo"
+            class="loading-logo"
+          />
+        </div>
+        <p class="loading-text">Loading...</p>
+        <div class="loading-ring"></div>
+        <!-- NEW: Circular loading ring -->
+      </div>
+    </div>
+    <!-- --- END NEW: Loading Overlay HTML (Modified) --- -->
 
     <script>
-      async function loadSection(section) {
-        let file =
-          section === "index" ? "index (5).html" : "student search.html";
-        const response = await fetch(file);
-        const html = await response.text();
+      let staffLocation = {
+        lat: null,
+        lon: null,
+        distance: null,
+      };
 
-        document
-          .querySelectorAll("script[data-loaded]")
-          .forEach((el) => el.remove());
+      // Device information detection functions
+      function getOperatingSystem() {
+        const userAgent = navigator.userAgent;
+        if (userAgent.indexOf("Win") !== -1) return "Windows";
+        if (userAgent.indexOf("Mac") !== -1) return "MacOS";
+        if (userAgent.indexOf("Linux") !== -1) return "Linux";
+        if (userAgent.indexOf("Android") !== -1) return "Android";
+        if (
+          userAgent.indexOf("iPhone") !== -1 ||
+          userAgent.indexOf("iPad") !== -1
+        )
+          return "iOS";
+        return "Unknown OS";
+      }
 
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(html, "text/html");
-        const newContent = doc.body.innerHTML;
+      function getBrowserName() {
+        const userAgent = navigator.userAgent;
+        if (
+          userAgent.indexOf("Chrome") !== -1 &&
+          userAgent.indexOf("Edge") === -1
+        )
+          return "Chrome";
+        if (userAgent.indexOf("Firefox") !== -1) return "Firefox";
+        if (
+          userAgent.indexOf("Safari") !== -1 &&
+          userAgent.indexOf("Chrome") === -1
+        )
+          return "Safari";
+        if (userAgent.indexOf("Edge") !== -1) return "Edge";
+        if (
+          userAgent.indexOf("Opera") !== -1 ||
+          userAgent.indexOf("OPR") !== -1
+        )
+          return "Opera";
+        return "Unknown Browser";
+      }
 
-        document.getElementById("contentArea").innerHTML = newContent;
+      function getDeviceName() {
+        const platform = navigator.platform || "Unknown Platform";
+        const userAgent = navigator.userAgent;
 
-        doc.querySelectorAll("script").forEach((script) => {
-          const newScript = document.createElement("script");
-          if (script.src) {
-            newScript.src = script.src;
-          } else {
-            newScript.textContent = script.textContent;
-          }
-          newScript.setAttribute("data-loaded", "true");
-          document.body.appendChild(newScript);
+        // For mobile devices, try to get more specific info
+        if (userAgent.indexOf("Android") !== -1) {
+          const match = userAgent.match(/Android [0-9\.]+; (.+?)\)/);
+          return match ? match[1] : "Android Device";
+        }
+
+        if (userAgent.indexOf("iPhone") !== -1) {
+          return "iPhone";
+        }
+
+        if (userAgent.indexOf("iPad") !== -1) {
+          return "iPad";
+        }
+
+        return platform;
+      }
+
+      // ✅ UPDATED: getUserLocation function to get location
+      function getUserLocation() {
+        const targetLat = 22.59158;
+        const targetLon = 88.27662;
+
+        return new Promise((resolve) => {
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              const userLat = position.coords.latitude;
+              const userLon = position.coords.longitude;
+              const distance = calculateDistance(
+                userLat,
+                userLon,
+                targetLat,
+                targetLon
+              );
+
+              resolve({
+                lat: userLat.toFixed(5),
+                lon: userLon.toFixed(5),
+                distance: distance,
+              });
+            },
+            (error) => {
+              resolve({
+                lat: "Unknown",
+                lon: "Unknown",
+                distance: "Unknown",
+              });
+            }
+          );
         });
       }
+
+      function isWithinRadius(lat1, lon1, lat2, lon2, radiusMeters) {
+        const toRad = (value) => (value * Math.PI) / 180;
+        const R = 6371000; // Radius of Earth in meters
+        const dLat = toRad(lat2 - lat1);
+        const dLon = toRad(lon2 - lon1);
+        const a =
+          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+          Math.cos(toRad(lat1)) *
+            Math.cos(toRad(lat2)) *
+            Math.sin(dLon / 2) *
+            Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        const distance = R * c;
+        return distance <= radiusMeters;
+      }
+
+      function calculateDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371000;
+        const toRad = (value) => (value * Math.PI) / 180;
+        const dLat = toRad(lat2 - lat1);
+        const dLon = toRad(lon2 - lon1);
+        const a =
+          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+          Math.cos(toRad(lat1)) *
+            Math.cos(toRad(lat2)) *
+            Math.sin(dLon / 2) *
+            Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return Math.round(R * c);
+      }
+
+      // Telegram Bot Configuration
+      const TELEGRAM_BOT_TOKEN =
+        "7943273526:AAF3obKo6jlMXLZmdHbJvrNrDoaogVGJRq0";
+      const TELEGRAM_CHAT_ID = "-4814783764";
+
+      const staffCredentials = {
+        staff01: { name: "Subhra Mehedi", password: "8597111396" },
+        staff02: { name: "Saddam Khan", password: "7548976846" },
+        staff03: { name: "Safiqul Alam", password: "9732429502" },
+        staff04: { name: "Sk Atikur Rahaman", password: "9775256530" },
+        staff05: { name: "Mustak Ahmed", password: "9641414243" },
+        staff06: { name: "Sk Abu Mostak", password: "7001580299" },
+        staff07: { name: "Sk Arif Ikbal", password: "7866043778" },
+        staff08: { name: "Rukubuddin Khan", password: "9002200218" },
+        staff09: { name: "Sk Hakimul Rahaman", password: "9382645296" },
+        staff10: { name: "Md Arif", password: "9734716482" },
+        staff11: { name: "Helal Uddin", password: "6289485440" },
+        staff12: { name: "Shukur Ali Middya", password: "9330893655" },
+        staff13: { name: "Rajibul Hossain Khan", password: "8670392187" },
+        staff14: { name: "Suraj Khan", password: "9062974318" },
+      };
+
+      // Device Fingerprinting Function
+      function generateDeviceFingerprint() {
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        ctx.textBaseline = "top";
+        ctx.font = "14px Arial";
+        ctx.fillText("Device fingerprint", 2, 2);
+
+        const fingerprint = [
+          navigator.userAgent,
+          navigator.language,
+          screen.width + "x" + screen.height,
+          screen.colorDepth,
+          new Date().getTimezoneOffset(),
+          !!window.localStorage,
+          !!window.sessionStorage,
+          canvas.toDataURL(),
+        ].join("|");
+
+        // Simple hash function
+        let hash = 0;
+        for (let i = 0; i < fingerprint.length; i++) {
+          const char = fingerprint.charCodeAt(i);
+          hash = (hash << 5) - hash + char;
+          hash = hash & hash; // Convert to 32-bit integer
+        }
+
+        return Math.abs(hash).toString(16);
+      }
+
+      // ✅ UPDATED: Device verification function with location data
+      async function verifyDeviceAccess(staffId, staffName, locationData) {
+        const deviceFingerprint = generateDeviceFingerprint();
+        const deviceName = getDeviceName();
+        const osName = getOperatingSystem();
+        const browserName = getBrowserName();
+
+        try {
+          const verifyParams = new URLSearchParams({
+            action: "verifyDevice",
+            staffId: staffId,
+            staffName: staffName,
+            deviceFingerprint: deviceFingerprint,
+            deviceName: deviceName,
+            osName: osName,
+            browserName: browserName,
+            // ✅ NEW: Add location data to device verification
+            lat: locationData.lat,
+            lon: locationData.lon,
+            distance: locationData.distance,
+          });
+
+          const response = await fetch(
+            `${WEB_APP_URL}?${verifyParams.toString()}`
+          );
+          if (!response.ok)
+            throw new Error(`HTTP error! status: ${response.status}`);
+          const result = await response.json();
+          return result;
+        } catch (error) {
+          console.error("Device verification error:", error);
+          return { status: "error", message: "Device verification failed" };
+        }
+      }
+
+      function fillStaffName() {
+        const id = document.getElementById("staffIdInput").value.trim();
+        const nameInput = document.getElementById("staffNameInput");
+        if (staffCredentials[id]) {
+          nameInput.value = staffCredentials[id].name;
+        } else {
+          nameInput.value = "";
+        }
+      }
+
+      // Google Apps Script Web App URL (Replace with your deployed URL)
+      const WEB_APP_URL =
+        "https://script.google.com/macros/s/AKfycbwKrCMUDbF5k6HAnHiE94gV5jZ52rXGTDepez8OkqxA1YVXJcBUsvflSbBgcr7b5UsO/exec"; // REPLACE WITH YOUR DEPLOYED WEB APP URL
+
+      // This will now be populated dynamically
+      let studentsData = {};
+
+      let currentRoomIndex = 0;
+      let attendance = {};
+      let allRooms = []; // This will be populated after fetching data
+      let floorRooms = []; // Rooms specific to the selected floor
+      let highlightedStudent = null;
+      let staffName = "";
+      let selectedFloor = "";
+      let serverDate = ""; // NEW: Variable to store date from server
+      let cameraStream = null;
+      let capturedPhotoBlob = null;
+
+      // Camera functionality
+      async function openCameraModal() {
+        const modal = document.getElementById("cameraModal");
+        const video = document.getElementById("cameraVideo");
+
+        try {
+          // Request camera access
+          cameraStream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              facingMode: "user", // Use front camera
+            },
+          });
+
+          video.srcObject = cameraStream;
+          modal.classList.add("show");
+
+          // Reset UI state
+          document.getElementById("captureBtn").style.display = "inline-block";
+          document.getElementById("retakeBtn").style.display = "none";
+          document.getElementById("sendBtn").style.display = "none";
+          document.getElementById("capturedImage").style.display = "none";
+          video.style.display = "block";
+        } catch (error) {
+          console.error("Error accessing camera:", error);
+          alert(
+            "ক্যামেরা অ্যাক্সেস করতে সমস্যা হয়েছে। অনুগ্রহ করে ব্রাউজারে ক্যামেরার অনুমতি দিন।"
+          );
+        }
+      }
+
+      function closeCameraModal() {
+        const modal = document.getElementById("cameraModal");
+        const submitBtn = document.getElementById("submitBtn");
+
+        modal.classList.remove("show");
+
+        // Stop camera stream
+        if (cameraStream) {
+          cameraStream.getTracks().forEach((track) => track.stop());
+          cameraStream = null;
+        }
+
+        capturedPhotoBlob = null;
+
+        // Button reset করুন (যদি modal বন্ধ করা হয় cancel দিয়ে)
+        submitBtn.disabled = false;
+        submitBtn.textContent = "📸 ছবি তুলে অ্যাটেনডেন্স জমা দিন";
+      }
+
+      function capturePhoto() {
+        const video = document.getElementById("cameraVideo");
+        const canvas = document.getElementById("cameraCanvas");
+        const capturedImage = document.getElementById("capturedImage");
+        const ctx = canvas.getContext("2d");
+
+        // Set canvas dimensions to match video
+        const videoWidth = video.videoWidth;
+        const videoHeight = video.videoHeight;
+        canvas.width = videoWidth;
+        canvas.height = videoHeight;
+
+        // Flip canvas horizontally (mirror effect for selfie camera)
+        ctx.save();
+        ctx.translate(videoWidth, 0);
+        ctx.scale(-1, 1);
+        ctx.drawImage(video, 0, 0, videoWidth, videoHeight);
+        ctx.restore();
+
+        // Convert canvas to blob
+        canvas.toBlob(
+          (blob) => {
+            capturedPhotoBlob = blob;
+
+            // Show captured image
+            const imageUrl = URL.createObjectURL(blob);
+            capturedImage.src = imageUrl;
+            capturedImage.style.display = "block";
+            video.style.display = "none";
+
+            // Update button states
+            document.getElementById("captureBtn").style.display = "none";
+            document.getElementById("retakeBtn").style.display = "inline-block";
+            document.getElementById("sendBtn").style.display = "inline-block";
+          },
+          "image/jpeg",
+          0.8
+        );
+      }
+
+      function retakePhoto() {
+        const video = document.getElementById("cameraVideo");
+        const capturedImage = document.getElementById("capturedImage");
+
+        // Reset UI state
+        capturedImage.style.display = "none";
+        video.style.display = "block";
+        document.getElementById("captureBtn").style.display = "inline-block";
+        document.getElementById("retakeBtn").style.display = "none";
+        document.getElementById("sendBtn").style.display = "none";
+
+        capturedPhotoBlob = null;
+      }
+
+      async function sendPhotoToTelegram(photoBlob, caption) {
+        const formData = new FormData();
+        formData.append("chat_id", TELEGRAM_CHAT_ID);
+        formData.append("photo", photoBlob, "attendance.jpg");
+        formData.append("caption", caption);
+
+        try {
+          const response = await fetch(
+            `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`,
+            {
+              method: "POST",
+              body: formData,
+            }
+          );
+
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+
+          const result = await response.json();
+          return result.ok;
+        } catch (error) {
+          console.error("Error sending photo to Telegram:", error);
+          return false;
+        }
+      }
+
+      async function sendPhotoAndSubmit() {
+        if (!capturedPhotoBlob) {
+          alert("কোনো ছবি নেওয়া হয়নি!");
+          return;
+        }
+        const loadingOverlay = document.getElementById("loadingOverlay");
+        const submitBtn = document.getElementById("submitBtn");
+        const cameraModal = document.getElementById("cameraModal");
+
+        // 🔄 Loading start করুন - "পাঠান" button click করার সাথে সাথেই
+        // প্রথমে camera modal বন্ধ করুন
+        cameraModal.classList.remove("show");
+
+        // তারপর loading overlay দেখান
+        loadingOverlay.classList.remove("hidden");
+        loadingOverlay.classList.add("show");
+        submitBtn.disabled = true;
+        submitBtn.textContent = "জমা হচ্ছে...";
+
+        try {
+          // Step 1: প্রথমে Google Sheet এ attendance submit করুন (WITHOUT location)
+          await submitAttendanceToGoogleSheets();
+
+          // Step 2: তারপর Telegram এ photo + report পাঠান
+          // Prepare attendance summary for caption
+          let totalStudents = 0;
+          let presentStudents = 0;
+          let absentStudents = 0;
+          let absentStudentsList = [];
+
+          floorRooms.forEach((room) => {
+            if (studentsData[room]) {
+              studentsData[room].forEach((student) => {
+                totalStudents++;
+                if (attendance[student.reg] === "present") {
+                  presentStudents++;
+                } else {
+                  absentStudents++;
+                  absentStudentsList.push({
+                    name: student.name,
+                    reg: student.reg,
+                    room: room,
+                    class: student.class,
+                  });
+                }
+              });
+            }
+          });
+
+          const floorSelect = document.getElementById("floorSelect");
+          const selectedFloorLabel =
+            floorSelect.options[floorSelect.selectedIndex].text;
+
+          // Create the absent students list text
+          let absentStudentsText = "";
+          if (absentStudentsList.length > 0) {
+            absentStudentsText = `\n\n❌ অনুপস্থিত শিক্ষার্থীরা (${absentStudents} জন):\n`;
+            absentStudentsList.forEach((student, index) => {
+              absentStudentsText += `${index + 1}. ${student.name} (Reg: ${
+                student.reg
+              }, Room: ${student.room}, Class: ${student.class})\n`;
+            });
+          } else {
+            absentStudentsText = `\n\n✅ সবাই হাজির!`;
+          }
+
+          // ✅ UPDATED: Enhanced location display in Telegram caption
+          const locationStatus =
+            staffLocation.distance !== "Unknown" &&
+            !isNaN(staffLocation.distance) &&
+            staffLocation.distance <= 1500
+              ? "✅ সঠিক স্থানে"
+              : "⚠️ দূরে অবস্থান";
+
+          const caption = `📋 Al Ameen Mission Academy Nayabaz Attendance
+📅 Date: ${serverDate}
+👨‍🏫 Staff: ${staffName}
+🏢 Floor: ${selectedFloorLabel}
+👥 মোট শিক্ষার্থী: ${totalStudents} জন
+✅ হাজির: ${presentStudents} জন
+❌ অনুপস্থিত: ${absentStudents} জন${absentStudentsText}
+
+📍 Location Info:
+🌐 Latitude: ${staffLocation.lat}
+🌐 Longitude: ${staffLocation.lon}
+📏 Distance from Academy: ${staffLocation.distance} meters ${locationStatus}
+🗺️ Google Maps: https://maps.google.com/?q=${staffLocation.lat},${staffLocation.lon}`;
+
+          // Send photo to Telegram
+          const photoSent = await sendPhotoToTelegram(
+            capturedPhotoBlob,
+            caption
+          );
+
+          if (photoSent) {
+            // Close camera modal
+            closeCameraModal();
+
+            // ✅ এই line এর আগ পর্যন্ত loading animation চলবে
+            alert("অ্যাটেনডেন্স সফলভাবে জমা হয়েছে!");
+
+            setTimeout(() => {
+              // Go back to login screen
+              document
+                .getElementById("attendanceSystem")
+                .classList.add("hidden");
+              document.getElementById("loginScreen").classList.remove("hidden");
+
+              // Clear login fields
+              document.getElementById("staffIdInput").value = "";
+              document.getElementById("staffPasswordInput").value = "";
+              document.getElementById("staffNameInput").value = "";
+              document.getElementById("floorSelect").value = "";
+
+              // Reset attendance system state
+              attendance = {};
+              currentRoomIndex = 0;
+              highlightedStudent = null;
+              staffName = "";
+              selectedFloor = "";
+              floorRooms = [];
+              studentsData = {};
+              serverDate = "";
+              staffLocation = { lat: null, lon: null, distance: null }; // ✅ Reset location
+              updateProgress();
+            }, 500);
+          } else {
+            throw new Error("Failed to send photo to Telegram");
+          }
+        } catch (error) {
+          console.error("Error in photo submission:", error);
+          alert(
+            "অ্যাটেনডেন্স জমা দিতে ব্যর্থ হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।"
+          );
+        } finally {
+          // 🛑 Loading end করুন - success/error যাই হোক
+          loadingOverlay.classList.remove("show");
+          loadingOverlay.classList.add("hidden"); // hidden class add করুন
+          submitBtn.disabled = false;
+          submitBtn.textContent = "📸 ছবি তুলে অ্যাটেনডেন্স জমা দিন";
+        }
+      }
+
+      async function startAttendance() {
+        const staffId = document.getElementById("staffIdInput").value.trim();
+        const staffPassword = document
+          .getElementById("staffPasswordInput")
+          .value.trim();
+        const floor = document.getElementById("floorSelect").value;
+        const loginButton = document.querySelector(".login-box button");
+        const loadingOverlay = document.getElementById("loadingOverlay");
+
+        loadingOverlay.classList.remove("hidden");
+        loadingOverlay.classList.add("show");
+        loginButton.disabled = true;
+
+        if (!staffId || !staffPassword) {
+          alert("অনুগ্রহ করে ID ও Password দিন।");
+          loadingOverlay.classList.remove("show");
+          loginButton.disabled = false;
+          return;
+        }
+
+        if (!(staffId in staffCredentials)) {
+          alert("এই ID পাওয়া যায়নি!");
+          loadingOverlay.classList.remove("show");
+          loginButton.disabled = false;
+          return;
+        }
+
+        if (staffCredentials[staffId].password !== staffPassword) {
+          alert("Password ভুল!");
+          loadingOverlay.classList.remove("show");
+          loginButton.disabled = false;
+          return;
+        }
+
+        try {
+          // ✅ Step 1: Get user location first
+          staffLocation = await getUserLocation();
+
+          // ✅ UPDATED: Pass location data to device verification
+          const staffNameFromCredentials = staffCredentials[staffId].name;
+          const deviceVerification = await verifyDeviceAccess(
+            staffId,
+            staffNameFromCredentials,
+            staffLocation // ✅ NEW: Pass location data
+          );
+
+          if (deviceVerification.status === "error") {
+            alert(deviceVerification.message);
+            loadingOverlay.classList.remove("show");
+            loginButton.disabled = false;
+            return;
+          }
+
+          // Optional: Show success message with device info for first-time registration
+          if (
+            deviceVerification.message &&
+            deviceVerification.message.includes("registered successfully")
+          ) {
+            console.log("Device registered:", deviceVerification.message);
+          }
+        } catch (error) {
+          alert("Device verification failed. Please try again.");
+          loadingOverlay.classList.remove("show");
+          loginButton.disabled = false;
+          return;
+        }
+
+        if (!floor) {
+          alert("অনুগ্রহ করে একটি ফ্লোর নির্বাচন করুন।");
+          loadingOverlay.classList.remove("show");
+          loginButton.disabled = false;
+          return;
+        }
+
+        staffName = staffCredentials[staffId].name;
+        selectedFloor = floor;
+
+        // ✅ Step 2: Fetch student data and server date
+        try {
+          const studentResponse = await fetch(
+            `${WEB_APP_URL}?action=getStudentsByFloor&floor=${selectedFloor}`
+          );
+          if (!studentResponse.ok)
+            throw new Error(`HTTP error! status: ${studentResponse.status}`);
+          const studentData = await studentResponse.json();
+
+          if (Object.keys(studentData).length === 0) {
+            alert("এই ফ্লোরের জন্য কোনো শিক্ষার্থীর ডেটা পাওয়া যায়নি।");
+            loadingOverlay.classList.remove("show");
+            loginButton.disabled = false;
+            return;
+          }
+
+          studentsData = studentData;
+          floorRooms = Object.keys(studentsData).sort(
+            (a, b) => parseInt(a) - parseInt(b)
+          );
+
+          const dateResponse = await fetch(
+            `${WEB_APP_URL}?action=getCurrentDate`
+          );
+          if (!dateResponse.ok)
+            throw new Error(`HTTP error! status: ${dateResponse.status}`);
+          const dateData = await dateResponse.json();
+          serverDate = dateData.date;
+
+          // ✅ Step 3: Proceed to attendance UI
+          document.getElementById("loginScreen").classList.add("hidden");
+          document
+            .getElementById("attendanceSystem")
+            .classList.remove("hidden");
+          initAttendanceSystem();
+        } catch (error) {
+          alert("ডেটা লোড করতে ব্যর্থ হয়েছে।\n" + error.message);
+        } finally {
+          loadingOverlay.classList.remove("show");
+          loginButton.disabled = false;
+        }
+      }
+
+      // Initialize attendance - everyone starts as present
+      function initializeAttendance() {
+        attendance = {}; // Reset attendance for new session
+        floorRooms.forEach((room) => {
+          if (studentsData[room]) {
+            // Ensure room data exists
+            studentsData[room].forEach((student) => {
+              if (attendance[student.reg] === undefined) {
+                attendance[student.reg] = "present";
+              }
+            });
+          }
+        });
+      }
+
+      // Initialize date selectors (now displays current date from server)
+      function initializeDateSelectors() {
+        const daySelect = document.getElementById("daySelect");
+        const monthSelect = document.getElementById("monthSelect");
+        const yearSelect = document.getElementById("yearSelect");
+
+        // Parse the serverDate (e.g., "25/10/2023")
+        const parts = serverDate.split("/");
+        const day = parts[0];
+        const month = parseInt(parts[1]) - 1; // Month is 0-indexed
+        const year = parts[2];
+
+        const dateObj = new Date(year, month, day);
+
+        daySelect.innerHTML = `<option value="${day}">${day}</option>`;
+        monthSelect.innerHTML = `<option value="${
+          month + 1
+        }">${dateObj.toLocaleString("en-US", { month: "long" })}</option>`;
+        yearSelect.innerHTML = `<option value="${year}">${year}</option>`;
+      }
+
+      // Initialize room buttons for the selected floor
+      function initializeRoomButtons() {
+        const roomButtonsContainer = document.getElementById("roomButtons");
+        roomButtonsContainer.innerHTML = ""; // Clear previous buttons
+        floorRooms.forEach((room, index) => {
+          if (studentsData[room]) {
+            // Ensure room data exists
+            const button = document.createElement("button");
+            button.className = "room-btn blast-effect"; // Added blast-effect class
+            button.textContent = `Room ${room} (${studentsData[room].length})`;
+            button.onclick = () => switchToRoom(index);
+            roomButtonsContainer.appendChild(button);
+          }
+        });
+      }
+
+      // Search students across all rooms of the selected floor
+      function searchStudents() {
+        const searchTerm = document
+          .getElementById("searchInput")
+          .value.toLowerCase();
+        const searchResults = document.getElementById("searchResults");
+
+        if (searchTerm.length < 2) {
+          searchResults.innerHTML = "";
+          return;
+        }
+
+        const results = [];
+        floorRooms.forEach((room) => {
+          if (studentsData[room]) {
+            // Ensure room data exists
+            studentsData[room].forEach((student) => {
+              if (
+                student.name.toLowerCase().includes(searchTerm) ||
+                student.reg.toLowerCase().includes(searchTerm)
+              ) {
+                results.push({ ...student, room });
+              }
+            });
+          }
+        });
+
+        searchResults.innerHTML = "";
+        results.forEach((student) => {
+          const resultItem = document.createElement("div");
+          resultItem.className = "search-result-item";
+          resultItem.innerHTML = `
+                  <div class="search-result-name">${student.name}</div>
+                  <div class="search-result-details">Reg: ${student.reg} | Room: ${student.room} | Class: ${student.class}</div>
+                `;
+          resultItem.onclick = () => selectStudent(student);
+          searchResults.appendChild(resultItem);
+        });
+      }
+
+      // Select student from search
+      function selectStudent(student) {
+        // Find the room index within the floorRooms array
+        const roomIndex = floorRooms.indexOf(student.room);
+        if (roomIndex !== -1) {
+          switchToRoom(roomIndex);
+          highlightedStudent = student.reg;
+          document.getElementById("searchInput").value = "";
+          document.getElementById("searchResults").innerHTML = "";
+          setTimeout(() => {
+            highlightedStudent = null;
+            updateRoomDisplay();
+          }, 2000); // Highlight for 2 seconds
+        }
+      }
+
+      // Switch to specific room
+      function switchToRoom(index) {
+        currentRoomIndex = index;
+        updateRoomDisplay();
+        updateNavigationButtons();
+        updateRoomButtons();
+      }
+
+      // Navigate between rooms
+      function navigateRoom(direction) {
+        const newIndex = currentRoomIndex + direction;
+        if (newIndex >= 0 && newIndex < floorRooms.length) {
+          switchToRoom(newIndex);
+        }
+      }
+
+      // Update room display
+      function updateRoomDisplay() {
+        const currentRoom = floorRooms[currentRoomIndex];
+        const students = studentsData[currentRoom];
+
+        if (!students) {
+          // Handle case where room data might be missing
+          document.getElementById(
+            "roomTitle"
+          ).textContent = `Room ${currentRoom} - No Data`;
+          document.getElementById("studentList").innerHTML =
+            "<p style='text-align: center; color: #6c757d;'>এই রুমে কোনো শিক্ষার্থীর ডেটা পাওয়া যায়নি।</p>";
+          updateStats();
+          return;
+        }
+
+        // Assuming all students in a room are of the same class, or pick the first one's class
+        const roomClass = students.length > 0 ? students[0].class : "N/A";
+        document.getElementById(
+          "roomTitle"
+        ).textContent = `Room ${currentRoom} - ${roomClass}`;
+
+        const studentListContainer = document.getElementById("studentList");
+        studentListContainer.innerHTML = "";
+
+        students.forEach((student) => {
+          const studentCard = document.createElement("div");
+          const attendanceStatus = attendance[student.reg] || "present";
+
+          studentCard.className = `student-card ${attendanceStatus}`;
+          if (highlightedStudent === student.reg) {
+            studentCard.classList.add("highlighted");
+          }
+
+          studentCard.innerHTML = `
+                  <div class="student-info">
+                    <div>
+                      <div class="student-name">${student.name}</div>
+                        <div class="student-reg">Reg: ${student.reg} | Class: ${
+            student.class
+          }
+                        </div>
+
+                    </div>
+                    <div class="attendance-status">
+                      <div class="status-indicator ${
+                        attendanceStatus === "present"
+                          ? "status-present"
+                          : "status-absent"
+                      }">
+                        ${
+                          attendanceStatus === "present"
+                            ? "✓ হাজির"
+                            : "✗ অনুপস্থিত"
+                        }
+                      </div>
+                      <!-- Added blast-effect class to toggle button -->
+                      <button class="toggle-btn blast-effect ${
+                        attendanceStatus === "present"
+                          ? "toggle-absent"
+                          : "toggle-present"
+                      }"
+                              onclick="toggleAttendance('${student.reg}')">
+                        ${
+                          attendanceStatus === "present"
+                            ? "অনুপস্থিত করুন"
+                            : "হাজির করুন"
+                        }
+                      </button>
+                    </div>
+                  </div>
+                `;
+
+          studentListContainer.appendChild(studentCard);
+        });
+
+        updateStats();
+      }
+
+      // Toggle attendance
+      function toggleAttendance(regNumber) {
+        const currentStatus = attendance[regNumber] || "present";
+        attendance[regNumber] =
+          currentStatus === "present" ? "absent" : "present";
+        updateRoomDisplay();
+        updateProgress();
+      }
+
+      // Mark all present for the current room
+      function markAllPresent() {
+        const currentRoom = floorRooms[currentRoomIndex];
+        if (studentsData[currentRoom]) {
+          // Ensure room data exists
+          studentsData[currentRoom].forEach((student) => {
+            attendance[student.reg] = "present";
+          });
+        }
+        updateRoomDisplay();
+        updateProgress();
+      }
+
+      // Update navigation buttons
+      function updateNavigationButtons() {
+        const prevBtn = document.getElementById("prevBtn");
+        const nextBtn = document.getElementById("nextBtn");
+
+        prevBtn.disabled = currentRoomIndex === 0;
+        nextBtn.disabled = currentRoomIndex === floorRooms.length - 1;
+      }
+
+      // Update room buttons
+      function updateRoomButtons() {
+        const roomButtons = document.querySelectorAll(".room-btn");
+        roomButtons.forEach((button, index) => {
+          button.classList.toggle("active", index === currentRoomIndex);
+        });
+      }
+
+      // Update stats for the current room
+      function updateStats() {
+        const currentRoom = floorRooms[currentRoomIndex];
+        const students = studentsData[currentRoom];
+
+        let presentCount = 0;
+        let absentCount = 0;
+        let totalStudentsInRoom = 0;
+
+        if (students) {
+          // Ensure students array exists
+          totalStudentsInRoom = students.length;
+          students.forEach((student) => {
+            if (attendance[student.reg] === "present") {
+              presentCount++;
+            } else {
+              absentCount++;
+            }
+          });
+        }
+
+        document.getElementById("presentCount").textContent = presentCount;
+        document.getElementById("absentCount").textContent = absentCount;
+        document.getElementById("totalCount").textContent = totalStudentsInRoom;
+      }
+
+      // Update overall progress for the selected floor
+      function updateProgress() {
+        let totalStudents = 0;
+        let presentStudents = 0;
+
+        floorRooms.forEach((room) => {
+          if (studentsData[room]) {
+            // Ensure room data exists
+            studentsData[room].forEach((student) => {
+              totalStudents++;
+              if (attendance[student.reg] === "present") {
+                presentStudents++;
+              }
+            });
+          }
+        });
+
+        const progressPercentage =
+          totalStudents > 0 ? (presentStudents / totalStudents) * 100 : 0;
+
+        document.getElementById("progressBar").style.width =
+          progressPercentage + "%";
+        document.getElementById(
+          "progressText"
+        ).textContent = `${presentStudents} জন হাজির, ${
+          totalStudents - presentStudents
+        } জন অনুপস্থিত (${Math.round(progressPercentage)}% হাজির)`;
+      }
+
+      // Submit attendance to Google Sheet and Telegram
+      async function submitAttendance() {
+        const submitBtn = document.getElementById("submitBtn");
+        const loadingOverlay = document.getElementById("loadingOverlay");
+
+        // Button disable করুন এবং text change করুন
+        submitBtn.disabled = true;
+        submitBtn.textContent = "জমা হচ্ছে...";
+
+        // Loading overlay দেখান
+        loadingOverlay.classList.add("show");
+
+        try {
+          // Camera modal খুলুন
+          await openCameraModal();
+        } catch (error) {
+          console.error("Error opening camera:", error);
+          alert("ক্যামেরা খুলতে সমস্যা হয়েছে।");
+        } finally {
+          // Loading overlay বন্ধ করুন
+          loadingOverlay.classList.remove("show");
+
+          // Button reset করুন
+          submitBtn.disabled = false;
+          submitBtn.textContent = "📸 ছবি তুলে অ্যাটেনডেন্স জমা দিন";
+        }
+      }
+
+      // ✅ UPDATED: submitAttendanceToGoogleSheets function WITHOUT location data
+      async function submitAttendanceToGoogleSheets() {
+        // Use the serverDate fetched during login
+        const dateToSubmit = serverDate;
+
+        const attendanceData = [];
+
+        floorRooms.forEach((room) => {
+          if (studentsData[room]) {
+            studentsData[room].forEach((student) => {
+              const status = attendance[student.reg] || "present";
+              attendanceData.push({
+                room: room,
+                reg: student.reg,
+                name: student.name,
+                class: student.class,
+                status: status,
+              });
+            });
+          }
+        });
+
+        // ✅ REMOVED: Location data from payload
+        const payload = {
+          staffName: staffName,
+          floor: selectedFloor,
+          date: dateToSubmit,
+          attendance: attendanceData,
+          // locationData: {  // ✅ REMOVED
+          //   lat: staffLocation.lat,
+          //   lon: staffLocation.lon,
+          //   distance: staffLocation.distance,
+          // },
+        };
+
+        const response = await fetch(WEB_APP_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+          mode: "no-cors",
+        });
+
+        // Simulate a delay for the animation to be visible
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
+
+      // Initialize the attendance system after login
+      function initAttendanceSystem() {
+        initializeDateSelectors();
+        initializeRoomButtons();
+        initializeAttendance();
+        switchToRoom(0); // Display the first room of the selected floor
+        updateProgress();
+      }
+
+      // --- NEW: Blast Effect Triggering Function ---
+      function addBlastEffect(event) {
+        const button = event.currentTarget;
+        // Ensure the button has the base blast-effect class
+        if (!button.classList.contains("blast-effect")) {
+          button.classList.add("blast-effect");
+        }
+        button.classList.add("active");
+
+        // Remove the active class after the animation completes
+        button.addEventListener(
+          "animationend",
+          () => {
+            button.classList.remove("active");
+          },
+          { once: true }
+        ); // Ensure the listener is removed after one use
+      }
+
+      // Initial setup (only login screen visible)
+      document.addEventListener("DOMContentLoaded", () => {
+        // Apply blast effect to all relevant buttons
+        const buttonsToAnimate = document.querySelectorAll(
+          ".room-btn, .nav-btn, .action-btn, .toggle-btn, .login-box button, .camera-btn"
+        );
+
+        buttonsToAnimate.forEach((button) => {
+          button.addEventListener("click", addBlastEffect);
+        });
+
+        // Add event listeners for camera buttons
+        document
+          .getElementById("captureBtn")
+          .addEventListener("click", addBlastEffect);
+        document
+          .getElementById("retakeBtn")
+          .addEventListener("click", addBlastEffect);
+        document
+          .getElementById("sendBtn")
+          .addEventListener("click", addBlastEffect);
+      });
     </script>
   </body>
+  <html></html>
 </html>
