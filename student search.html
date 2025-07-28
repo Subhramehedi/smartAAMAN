@@ -1,0 +1,1439 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Al Ameen Mission Academy Student Search</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Poppins", sans-serif;
+        background: linear-gradient(
+          135deg,
+          #0f4c75 0%,
+          #3282b8 50%,
+          #bbe1fa 100%
+        );
+        min-height: 100vh;
+        padding: 10px;
+      }
+
+      .container {
+        max-width: 420px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+        overflow: hidden;
+        min-height: calc(100vh - 20px);
+      }
+
+      .header {
+        background: linear-gradient(135deg, #0f4c75 0%, #3282b8 100%);
+        padding: 25px 20px;
+        text-align: center;
+        color: white;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .header::before {
+        content: "";
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="islamic-pattern" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="10" cy="10" r="2" fill="rgba(255,255,255,0.1)"/><path d="M10 5 L15 10 L10 15 L5 10 Z" fill="rgba(255,255,255,0.05)"/></pattern></defs><rect width="100" height="100" fill="url(%23islamic-pattern)"/></svg>')
+          repeat;
+        z-index: 1;
+      }
+
+      .header-content {
+        position: relative;
+        z-index: 2;
+      }
+
+      .logo {
+        width: 70px;
+        height: 70px;
+        background: linear-gradient(135deg, #ffd700 0%, #ffa500 100%);
+        border-radius: 50%;
+        margin: 0 auto 15px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 8px 20px rgba(255, 215, 0, 0.4);
+        border: 3px solid rgba(255, 255, 255, 0.3);
+        overflow: hidden;
+      }
+
+      .logo img {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        object-fit: cover;
+      }
+
+      .header h1 {
+        font-size: 1.4rem;
+        margin-bottom: 8px;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        font-weight: 700;
+      }
+
+      .header p {
+        font-size: 14px;
+        opacity: 0.9;
+        font-weight: 400;
+      }
+
+      .search-section {
+        padding: 25px 20px;
+        background: #f8f9fa;
+        border-bottom: 1px solid #e9ecef;
+      }
+
+      .search-input {
+        width: 100%;
+        padding: 15px 20px;
+        border: 2px solid #e9ecef;
+        border-radius: 25px;
+        font-size: 16px;
+        transition: all 0.3s ease;
+        background: white;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+      }
+
+      .search-input:focus {
+        outline: none;
+        border-color: #3282b8;
+        box-shadow: 0 0 20px rgba(50, 130, 184, 0.2);
+        transform: translateY(-2px);
+      }
+
+      .search-results {
+        margin-top: 15px;
+        max-height: 200px;
+        overflow-y: auto;
+      }
+
+      .search-result-item {
+        padding: 15px;
+        background: white;
+        border-radius: 12px;
+        margin-bottom: 8px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border: 1px solid #e9ecef;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      }
+
+      .search-result-item:hover {
+        background: linear-gradient(135deg, #e8f4fd 0%, #d1e7f0 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        border-color: #3282b8;
+      }
+
+      .search-result-name {
+        font-weight: 600;
+        color: #495057;
+        font-size: 15px;
+        margin-bottom: 5px;
+      }
+
+      .search-result-details {
+        color: #6c757d;
+        font-size: 13px;
+      }
+
+      .room-nav {
+        padding: 20px;
+        background: #f8f9fa;
+        border-bottom: 1px solid #e9ecef;
+      }
+
+      .room-buttons-wrapper {
+        overflow-x: auto;
+        padding-bottom: 10px;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+      }
+
+      .room-buttons-wrapper::-webkit-scrollbar {
+        display: none;
+      }
+
+      .room-buttons {
+        display: flex;
+        gap: 12px;
+        flex-wrap: nowrap;
+        min-width: max-content;
+        padding: 5px 0;
+      }
+
+      .room-btn {
+        padding: 12px 18px;
+        border: none;
+        border-radius: 25px;
+        background: white;
+        color: #495057;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 13px;
+        font-weight: 600;
+        white-space: nowrap;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        border: 2px solid transparent;
+      }
+
+      .room-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      }
+
+      .room-btn.active {
+        background: linear-gradient(135deg, #0f4c75 0%, #3282b8 100%);
+        color: white;
+        transform: translateY(-3px);
+        box-shadow: 0 6px 20px rgba(15, 76, 117, 0.4);
+        border-color: #0f4c75;
+      }
+
+      .content {
+        padding: 20px;
+        max-height: 60vh;
+        overflow-y: auto;
+      }
+
+      .room-title {
+        text-align: center;
+        margin-bottom: 25px;
+        color: #495057;
+        font-size: 1.3rem;
+        font-weight: 700;
+        padding: 15px;
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-radius: 15px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+      }
+
+      .student-card {
+        background: white;
+        border-radius: 15px;
+        padding: 18px;
+        margin-bottom: 12px;
+        border: 2px solid transparent;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+      }
+
+      .student-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        border-color: #3282b8;
+      }
+
+      .student-card.highlighted {
+        border-color: #ffd700;
+        background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+        animation: glow 1.25s ease-in-out 4;
+        box-shadow: 0 0 30px rgba(255, 215, 0, 0.6);
+        transform: scale(1.02);
+      }
+
+      @keyframes glow {
+        0%,
+        100% {
+          transform: scale(1.02);
+          box-shadow: 0 0 30px rgba(255, 215, 0, 0.6);
+          border-color: #ffd700;
+        }
+        50% {
+          transform: scale(1.05);
+          box-shadow: 0 0 50px rgba(255, 215, 0, 0.9);
+          border-color: #ffed4e;
+          background: linear-gradient(135deg, #fffff0 0%, #fef08a 100%);
+        }
+      }
+
+      .student-name {
+        font-weight: 700;
+        color: #495057;
+        font-size: 16px;
+        margin-bottom: 5px;
+      }
+
+      .student-details {
+        color: #6c757d;
+        font-size: 13px;
+        display: flex;
+        justify-content: space-between;
+        flex-wrap: wrap;
+      }
+
+      .stats {
+        display: flex;
+        justify-content: space-around;
+        margin-bottom: 20px;
+        padding: 15px;
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+      }
+
+      .stat-item {
+        text-align: center;
+      }
+
+      .stat-number {
+        font-size: 20px;
+        font-weight: 700;
+        color: #0f4c75;
+      }
+
+      .stat-label {
+        font-size: 12px;
+        color: #6c757d;
+        margin-top: 2px;
+      }
+
+      /* Student Details Modal */
+      .student-details-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+        padding: 20px;
+      }
+
+      .student-details-modal.show {
+        opacity: 1;
+        visibility: visible;
+      }
+
+      .student-details-content {
+        background: white;
+        border-radius: 20px;
+        max-width: 500px;
+        width: 100%;
+        max-height: 90vh;
+        overflow-y: auto;
+        position: relative;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        transform: translateY(50px);
+        transition: transform 0.3s ease;
+      }
+
+      .student-details-modal.show .student-details-content {
+        transform: translateY(0);
+      }
+
+      .student-details-header {
+        background: linear-gradient(135deg, #0f4c75 0%, #3282b8 100%);
+        color: white;
+        padding: 25px 20px;
+        text-align: center;
+        position: relative;
+      }
+
+      .close-btn {
+        position: absolute;
+        top: 15px;
+        right: 20px;
+        background: none;
+        border: none;
+        color: white;
+        font-size: 24px;
+        cursor: pointer;
+        padding: 5px;
+        border-radius: 50%;
+        transition: all 0.3s ease;
+        width: 35px;
+        height: 35px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .close-btn:hover {
+        background: rgba(255, 255, 255, 0.2);
+        transform: rotate(90deg);
+      }
+
+      .student-avatar {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #ffd700 0%, #ffa500 100%);
+        margin: 0 auto 15px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        font-weight: 700;
+        color: white;
+        box-shadow: 0 8px 20px rgba(255, 215, 0, 0.4);
+        border: 3px solid rgba(255, 255, 255, 0.3);
+      }
+
+      .student-details-name {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 5px;
+      }
+
+      .student-details-reg {
+        font-size: 14px;
+        opacity: 0.9;
+      }
+
+      .student-details-body {
+        padding: 25px 20px;
+      }
+
+      .detail-section {
+        margin-bottom: 25px;
+      }
+
+      .detail-section-title {
+        font-size: 16px;
+        font-weight: 700;
+        color: #0f4c75;
+        margin-bottom: 15px;
+        padding-bottom: 8px;
+        border-bottom: 2px solid #e9ecef;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .detail-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 0;
+        border-bottom: 1px solid #f8f9fa;
+      }
+
+      .detail-row:last-child {
+        border-bottom: none;
+      }
+
+      .detail-label {
+        font-weight: 600;
+        color: #495057;
+        font-size: 14px;
+      }
+
+      .detail-value {
+        color: #6c757d;
+        font-size: 14px;
+        font-weight: 500;
+        text-align: right;
+        max-width: 60%;
+      }
+
+      .detail-value.highlight {
+        color: #0f4c75;
+        font-weight: 700;
+      }
+
+      .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.9);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
+      }
+
+      .loading-overlay.show {
+        opacity: 1;
+        visibility: visible;
+      }
+
+      .loading-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255, 255, 255, 0.1);
+        padding: 40px;
+        border-radius: 25px;
+        box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
+      }
+
+      .loading-logo-wrapper {
+        position: relative;
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 25px;
+        box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.7);
+        animation: pulse 2s infinite;
+      }
+
+      .loading-logo {
+        width: 90%;
+        height: 90%;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 4px solid rgba(255, 255, 255, 0.5);
+      }
+
+      @keyframes pulse {
+        0% {
+          box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.7);
+        }
+        70% {
+          box-shadow: 0 0 0 25px rgba(255, 215, 0, 0);
+        }
+        100% {
+          box-shadow: 0 0 0 0 rgba(255, 215, 0, 0);
+        }
+      }
+
+      .loading-text {
+        color: white;
+        font-size: 1.6rem;
+        font-weight: 700;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        margin-bottom: 10px;
+      }
+
+      .loading-subtext {
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 14px;
+        text-align: center;
+        margin-bottom: 25px;
+      }
+
+      .loading-ring {
+        border: 6px solid rgba(255, 255, 255, 0.3);
+        border-top: 6px solid #ffd700;
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      .empty-state {
+        text-align: center;
+        padding: 40px 20px;
+        color: #6c757d;
+      }
+
+      .empty-state h3 {
+        font-size: 1.2rem;
+        margin-bottom: 10px;
+        color: #495057;
+      }
+
+      .empty-state p {
+        font-size: 14px;
+        line-height: 1.5;
+      }
+
+      @media (max-width: 480px) {
+        .container {
+          margin: 0;
+          border-radius: 0;
+          min-height: 100vh;
+        }
+
+        .header {
+          padding: 20px 15px;
+        }
+
+        .header h1 {
+          font-size: 1.2rem;
+        }
+
+        .search-section {
+          padding: 20px 15px;
+        }
+
+        .search-input {
+          padding: 12px 15px;
+          font-size: 15px;
+        }
+
+        .room-nav {
+          padding: 15px;
+        }
+
+        .room-btn {
+          padding: 10px 14px;
+          font-size: 12px;
+        }
+
+        .content {
+          padding: 15px;
+        }
+
+        .student-card {
+          padding: 15px;
+        }
+
+        .student-details {
+          flex-direction: column;
+          gap: 3px;
+        }
+
+        .student-details-content {
+          margin: 10px;
+          max-height: calc(100vh - 40px);
+        }
+
+        .student-details-header {
+          padding: 20px 15px;
+        }
+
+        .student-details-body {
+          padding: 20px 15px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <div class="header-content">
+          <div class="logo">
+            <img
+              src="https://play-lh.googleusercontent.com/gufR1twVlU6_SzC-iIAD_8bLLf-XYVAwwwwJF-cphD32IX0GeHNLi4GrN42hRYDHg-A"
+              alt="Logo"
+            />
+          </div>
+          <h1>Al Ameen Mission Academy Nayabaz</h1>
+          <p>🔍 Student Search System</p>
+        </div>
+      </div>
+
+      <div class="search-section">
+        <input
+          type="text"
+          id="searchInput"
+          class="search-input"
+          placeholder="🔍 নাম বা রেজিস্ট্রেশন নম্বর দিয়ে খুঁজুন..."
+          oninput="searchStudents()"
+        />
+        <div id="searchResults" class="search-results"></div>
+      </div>
+
+      <div class="room-nav">
+        <div class="room-buttons-wrapper">
+          <div class="room-buttons" id="roomButtons"></div>
+        </div>
+      </div>
+
+      <div class="content">
+        <div class="room-title" id="roomTitle">সব রুম</div>
+
+        <div class="stats">
+          <div class="stat-item">
+            <div class="stat-number" id="roomCount">0</div>
+            <div class="stat-label">রুম</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-number" id="studentCount">0</div>
+            <div class="stat-label">শিক্ষার্থী</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-number" id="currentRoomStudents">0</div>
+            <div class="stat-label">বর্তমান রুমে</div>
+          </div>
+        </div>
+
+        <div id="studentList"></div>
+      </div>
+    </div>
+
+    <!-- Student Details Modal -->
+    <div id="studentDetailsModal" class="student-details-modal">
+      <div class="student-details-content">
+        <div class="student-details-header">
+          <button class="close-btn" onclick="closeStudentDetails()">
+            &times;
+          </button>
+          <div class="student-avatar" id="studentAvatar">👤</div>
+          <div class="student-details-name" id="studentDetailsName">
+            Loading...
+          </div>
+          <div class="student-details-reg" id="studentDetailsReg">
+            Loading...
+          </div>
+        </div>
+        <div class="student-details-body" id="studentDetailsBody">
+          <div class="loading-ring" style="margin: 50px auto"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay">
+      <div class="loading-content">
+        <div class="loading-logo-wrapper">
+          <img
+            src="https://play-lh.googleusercontent.com/gufR1twVlU6_SzC-iIAD_8bLLf-XYVAwwwwJF-cphD32IX0GeHNLi4GrN42hRYDHg-A"
+            alt="Logo"
+            class="loading-logo"
+          />
+        </div>
+        <p class="loading-text">Loading...</p>
+        <p class="loading-subtext">শিক্ষার্থীদের তথ্য লোড হচ্ছে</p>
+        <div class="loading-ring"></div>
+      </div>
+    </div>
+
+    <script>
+      // Replace with your deployed Google Apps Script Web App URL
+      const WEB_APP_URL =
+        "https://script.google.com/macros/s/AKfycbzK1wsDdtfdRNRFTUpY8mzTk0t-H3X-Z3AKC4VZtLsLjvyiL-frRuiJEVpHptgH0aIO/exec";
+
+      let studentsData = {};
+      let allStudents = [];
+      let currentRoomIndex = 0;
+      let allRooms = [];
+      let highlightedStudent = null;
+
+      // Initialize the application
+      document.addEventListener("DOMContentLoaded", () => {
+        loadStudentData();
+      });
+
+      // Load student data from Google Sheets
+      async function loadStudentData() {
+        const loadingOverlay = document.getElementById("loadingOverlay");
+        loadingOverlay.classList.add("show");
+
+        try {
+          const response = await fetch(`${WEB_APP_URL}?action=getStudentData`);
+
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+
+          const result = await response.json();
+
+          if (result.status === "success") {
+            studentsData = result.data.rooms;
+            allStudents = result.data.allStudents;
+            allRooms = Object.keys(studentsData);
+
+            initializeInterface();
+            showAllRooms();
+          } else {
+            throw new Error(result.message || "Failed to load data");
+          }
+        } catch (error) {
+          console.error("Error loading student data:", error);
+          showErrorState(
+            "ডেটা লোড করতে ব্যর্থ হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।"
+          );
+        } finally {
+          loadingOverlay.classList.remove("show");
+        }
+      }
+
+      // Initialize the interface
+      function initializeInterface() {
+        initializeRoomButtons();
+        updateStats();
+      }
+
+      // Initialize room buttons
+      function initializeRoomButtons() {
+        const roomButtonsContainer = document.getElementById("roomButtons");
+        roomButtonsContainer.innerHTML = "";
+
+        // Add "All Rooms" button
+        const allRoomsButton = document.createElement("button");
+        allRoomsButton.className = "room-btn active";
+        allRoomsButton.textContent = `সব রুম (${allRooms.length})`;
+        allRoomsButton.onclick = () => showAllRooms();
+        roomButtonsContainer.appendChild(allRoomsButton);
+
+        // Add individual room buttons
+        allRooms.forEach((room, index) => {
+          const button = document.createElement("button");
+          button.className = "room-btn";
+          button.textContent = `Room ${room} (${studentsData[room].length})`;
+          button.onclick = () => switchToRoom(index);
+          roomButtonsContainer.appendChild(button);
+        });
+      }
+
+      // Search students
+      function searchStudents() {
+        const searchTerm = document
+          .getElementById("searchInput")
+          .value.toLowerCase()
+          .trim();
+        const searchResults = document.getElementById("searchResults");
+
+        if (searchTerm.length < 2) {
+          searchResults.innerHTML = "";
+          return;
+        }
+
+        const results = allStudents.filter(
+          (student) =>
+            student.name.toLowerCase().includes(searchTerm) ||
+            student.reg.toLowerCase().includes(searchTerm)
+        );
+
+        searchResults.innerHTML = "";
+
+        if (results.length === 0) {
+          const noResult = document.createElement("div");
+          noResult.className = "search-result-item";
+          noResult.innerHTML = `
+                    <div class="search-result-name" style="color: #dc3545;">কোনো ফলাফল পাওয়া যায়নি</div>
+                    <div class="search-result-details">অন্য কিছু খুঁজে দেখুন</div>
+                `;
+          searchResults.appendChild(noResult);
+          return;
+        }
+
+        results.forEach((student) => {
+          const resultItem = document.createElement("div");
+          resultItem.className = "search-result-item";
+          resultItem.innerHTML = `
+                    <div class="search-result-name">${student.name}</div>
+                    <div class="search-result-details">
+                        Reg: ${student.reg} | Room: ${student.room} | Class: ${student.class}
+                    </div>
+                `;
+          resultItem.onclick = () => selectStudent(student);
+          searchResults.appendChild(resultItem);
+        });
+      }
+
+      // Select student from search and show details
+      async function selectStudent(student) {
+        // Clear search
+        document.getElementById("searchInput").value = "";
+        document.getElementById("searchResults").innerHTML = "";
+
+        // Show student details modal
+        await showStudentDetails(student);
+      }
+
+      // Show student details in modal
+      async function showStudentDetails(student) {
+        const modal = document.getElementById("studentDetailsModal");
+        const avatar = document.getElementById("studentAvatar");
+        const name = document.getElementById("studentDetailsName");
+        const reg = document.getElementById("studentDetailsReg");
+        const body = document.getElementById("studentDetailsBody");
+
+        // Set basic info immediately
+        avatar.textContent = student.name.charAt(0).toUpperCase();
+        name.textContent = student.name;
+        reg.textContent = `Registration: ${student.reg}`;
+
+        // Show loading in body
+        body.innerHTML =
+          '<div class="loading-ring" style="margin: 50px auto;"></div>';
+
+        // Show modal
+        modal.classList.add("show");
+
+        try {
+          // Fetch detailed student data
+          const response = await fetch(
+            `${WEB_APP_URL}?action=getStudentDetails&reg=${student.reg}`
+          );
+          const result = await response.json();
+
+          if (result.status === "success") {
+            const studentDetails = result.data;
+            displayStudentDetails(studentDetails);
+          } else {
+            // If API doesn't have detailed endpoint, show basic info
+            displayBasicStudentDetails(student);
+          }
+        } catch (error) {
+          console.error("Error loading student details:", error);
+          displayBasicStudentDetails(student);
+        }
+      }
+
+      // Display detailed student information
+      function displayStudentDetails(student) {
+        const body = document.getElementById("studentDetailsBody");
+
+        body.innerHTML = `
+          <div class="detail-section">
+            <div class="detail-section-title">
+              📋 মৌলিক তথ্য
+            </div>
+            <div class="detail-row">
+              <div class="detail-label">পূর্ণ নাম</div>
+              <div class="detail-value highlight">${student.name || "N/A"}</div>
+            </div>
+            <div class="detail-row">
+              <div class="detail-label">রেজিস্ট্রেশন নম্বর</div>
+              <div class="detail-value highlight">${student.reg || "N/A"}</div>
+            </div>
+            <div class="detail-row">
+              <div class="detail-label">রুম নম্বর</div>
+              <div class="detail-value">${student.room || "N/A"}</div>
+            </div>
+            <div class="detail-row">
+              <div class="detail-label">ক্লাস</div>
+              <div class="detail-value">${student.class || "N/A"}</div>
+            </div>
+            <div class="detail-row">
+              <div class="detail-label">রোল নম্বর</div>
+              <div class="detail-value">${student.roll || "N/A"}</div>
+            </div>
+          </div>
+
+          <div class="detail-section">
+            <div class="detail-section-title">
+              👤 ব্যক্তিগত তথ্য
+            </div>
+            <div class="detail-row">
+              <div class="detail-label">পিতার নাম</div>
+              <div class="detail-value">${student.father_name || "N/A"}</div>
+            </div>
+            <div class="detail-row">
+              <div class="detail-label">মাতার নাম</div>
+              <div class="detail-value">${student.mother_name || "N/A"}</div>
+            </div>
+            <div class="detail-row">
+              <div class="detail-label">জন্ম তারিখ</div>
+              <div class="detail-value">${student.date_of_birth || "N/A"}</div>
+            </div>
+            <div class="detail-row">
+              <div class="detail-label">লিঙ্গ</div>
+              <div class="detail-value">${student.gender || "N/A"}</div>
+            </div>
+            <div class="detail-row">
+              <div class="detail-label">রক্তের গ্রুপ</div>
+              <div class="detail-value">${student.blood_group || "N/A"}</div>
+            </div>
+          </div>
+
+          <div class="detail-section">
+            <div class="detail-section-title">
+              📱 যোগাযোগের তথ্য
+            </div>
+            <div class="detail-row">
+              <div class="detail-label">মোবাইল নম্বর</div>
+              <div class="detail-value">${student.mobile || "N/A"}</div>
+            </div>
+            <div class="detail-row">
+              <div class="detail-label">পিতার মোবাইল</div>
+              <div class="detail-value">${student.father_mobile || "N/A"}</div>
+            </div>
+            <div class="detail-row">
+              <div class="detail-label">মাতার মোবাইল</div>
+              <div class="detail-value">${student.mother_mobile || "N/A"}</div>
+            </div>
+            <div class="detail-row">
+              <div class="detail-label">ইমেইল</div>
+              <div class="detail-value">${student.email || "N/A"}</div>
+            </div>
+          </div>
+
+          <div class="detail-section">
+            <div class="detail-section-title">
+              🏠 ঠিকানা
+            </div>
+            <div class="detail-row">
+              <div class="detail-label">বর্তমান ঠিকানা</div>
+              <div class="detail-value">${
+                student.present_address || "N/A"
+              }</div>
+            </div>
+            <div class="detail-row">
+              <div class="detail-label">স্থায়ী ঠিকানা</div>
+              <div class="detail-value">${
+                student.permanent_address || "N/A"
+              }</div>
+            </div>
+            <div class="detail-row">
+              <div class="detail-label">জেলা</div>
+              <div class="detail-value">${student.district || "N/A"}</div>
+            </div>
+            <div class="detail-row">
+              <div class="detail-label">থানা</div>
+              <div class="detail-value">${student.thana || "N/A"}</div>
+            </div>
+          </div>
+
+          <div class="detail-section">
+            <div class="detail-section-title">
+              🎓 একাডেমিক তথ্য
+            </div>
+            <div class="detail-row">
+              <div class="detail-label">ভর্তির তারিখ</div>
+              <div class="detail-value">${student.admission_date || "N/A"}</div>
+            </div>
+            <div class="detail-row">
+              <div class="detail-label">শাখা</div>
+              <div class="detail-value">${student.section || "N/A"}</div>
+            </div>
+            <div class="detail-row">
+              <div class="detail-label">গ্রুপ</div>
+              <div class="detail-value">${student.group || "N/A"}</div>
+            </div>
+            <div class="detail-row">
+              <div class="detail-label">শিফট</div>
+              <div class="detail-value">${student.shift || "N/A"}</div>
+            </div>
+            <div class="detail-row">
+              <div class="detail-label">মাসিক বেতন</div>
+              <div class="detail-value">${
+                student.monthly_fee ? "৳" + student.monthly_fee : "N/A"
+              }</div>
+            </div>
+          </div>
+
+          <div class="detail-section">
+            <div class="detail-section-title">
+              ℹ️ অতিরিক্ত তথ্য
+            </div>
+            <div class="detail-row">
+              <div class="detail-label">ধর্ম</div>
+              <div class="detail-value">${student.religion || "N/A"}</div>
+            </div>
+            <div class="detail-row">
+              <div class="detail-label">জাতীয়তা</div>
+              <div class="detail-value">${student.nationality || "N/A"}</div>
+            </div>
+            <div class="detail-row">
+              <div class="detail-label">অভিভাবকের পেশা</div>
+              <div class="detail-value">${
+                student.guardian_occupation || "N/A"
+              }</div>
+            </div>
+            <div class="detail-row">
+              <div class="detail-label">স্ট্যাটাস</div>
+              <div class="detail-value ${
+                student.status === "Active" ? "highlight" : ""
+              }">${student.status || "N/A"}</div>
+            </div>
+          </div>
+        `;
+      }
+
+      // Display basic student information (fallback)
+      function displayBasicStudentDetails(student) {
+        const body = document.getElementById("studentDetailsBody");
+
+        body.innerHTML = `
+          <div class="detail-section">
+            <div class="detail-section-title">
+              📋 মৌলিক তথ্য
+            </div>
+            <div class="detail-row">
+              <div class="detail-label">পূর্ণ নাম</div>
+              <div class="detail-value highlight">${student.name}</div>
+            </div>
+            <div class="detail-row">
+              <div class="detail-label">রেজিস্ট্রেশন নম্বর</div>
+              <div class="detail-value highlight">${student.reg}</div>
+            </div>
+            <div class="detail-row">
+              <div class="detail-label">রুম নম্বর</div>
+              <div class="detail-value">${student.room}</div>
+            </div>
+            <div class="detail-row">
+              <div class="detail-label">ক্লাস</div>
+              <div class="detail-value">${student.class}</div>
+            </div>
+          </div>
+
+          <div class="empty-state" style="margin-top: 30px;">
+            <h3>📊 বিস্তারিত তথ্য</h3>
+            
+          </div>
+        `;
+      }
+
+      // Close student details modal
+      function closeStudentDetails() {
+        const modal = document.getElementById("studentDetailsModal");
+        modal.classList.remove("show");
+      }
+
+      // Close modal when clicking outside
+      document
+        .getElementById("studentDetailsModal")
+        .addEventListener("click", function (e) {
+          if (e.target === this) {
+            closeStudentDetails();
+          }
+        });
+
+      // Close modal with Escape key
+      document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape") {
+          closeStudentDetails();
+        }
+      });
+
+      // Function to scroll to highlighted student
+      function scrollToHighlightedStudent() {
+        const highlightedCard = document.querySelector(
+          ".student-card.highlighted"
+        );
+        if (highlightedCard) {
+          // First scroll to the student card
+          highlightedCard.scrollIntoView({
+            behavior: "smooth",
+            block: "center",
+            inline: "nearest",
+          });
+
+          // Also scroll the main content container if needed
+          const contentContainer = document.querySelector(".content");
+          const studentList = document.getElementById("studentList");
+
+          if (contentContainer && studentList) {
+            const cardRect = highlightedCard.getBoundingClientRect();
+            const containerRect = contentContainer.getBoundingClientRect();
+
+            // Calculate if card is outside visible area
+            if (
+              cardRect.top < containerRect.top ||
+              cardRect.bottom > containerRect.bottom
+            ) {
+              const scrollTop =
+                highlightedCard.offsetTop - contentContainer.clientHeight / 2;
+              contentContainer.scrollTo({
+                top: scrollTop,
+                behavior: "smooth",
+              });
+            }
+          }
+        }
+      }
+
+      // Show all rooms
+      function showAllRooms() {
+        currentRoomIndex = -1;
+        document.getElementById("roomTitle").textContent = "সব রুম";
+        updateRoomButtons();
+        showAllStudents();
+        updateStats();
+      }
+
+      // Show all students from all rooms
+      function showAllStudents() {
+        const studentListContainer = document.getElementById("studentList");
+        studentListContainer.innerHTML = "";
+
+        allRooms.forEach((room) => {
+          // Room header
+          const roomHeader = document.createElement("div");
+          roomHeader.style.cssText = `
+                    background: linear-gradient(135deg, #0f4c75 0%, #3282b8 100%);
+                    color: white;
+                    padding: 12px 18px;
+                    border-radius: 12px;
+                    margin: 20px 0 15px 0;
+                    font-weight: 600;
+                    font-size: 15px;
+                    text-align: center;
+                    box-shadow: 0 4px 15px rgba(15, 76, 117, 0.3);
+                `;
+          roomHeader.textContent = `Room ${room} - ${
+            studentsData[room][0]?.class || "N/A"
+          } (${studentsData[room].length} জন)`;
+          studentListContainer.appendChild(roomHeader);
+
+          // Students in this room
+          studentsData[room].forEach((student) => {
+            const studentCard = document.createElement("div");
+            studentCard.className = "student-card";
+            studentCard.style.cursor = "pointer";
+
+            // Apply highlighting if this student is selected
+            if (highlightedStudent === student.reg) {
+              studentCard.classList.add("highlighted");
+              studentCard.setAttribute("data-reg", student.reg);
+            }
+
+            studentCard.innerHTML = `
+                        <div class="student-name">${student.name}</div>
+                        <div class="student-details">
+                            <span>Reg: ${student.reg}</span>
+                            <span>Room: ${student.room}</span>
+                            <span>Class: ${student.class}</span>
+                        </div>
+                    `;
+
+            // Add click event to show details
+            studentCard.onclick = () => showStudentDetails(student);
+            studentListContainer.appendChild(studentCard);
+          });
+        });
+
+        // If there's a highlighted student, scroll to it after a brief delay
+        if (highlightedStudent) {
+          setTimeout(() => {
+            scrollToHighlightedStudent();
+          }, 150);
+        }
+      }
+
+      // Switch to specific room
+      function switchToRoom(index) {
+        currentRoomIndex = index;
+        const room = allRooms[index];
+        const students = studentsData[room];
+
+        document.getElementById("roomTitle").textContent = `Room ${room} - ${
+          students[0]?.class || "N/A"
+        }`;
+        updateRoomButtons();
+        updateRoomDisplay();
+        updateStats();
+      }
+
+      // Update room display
+      function updateRoomDisplay() {
+        if (currentRoomIndex === -1) {
+          showAllStudents();
+          return;
+        }
+
+        const room = allRooms[currentRoomIndex];
+        const students = studentsData[room];
+        const studentListContainer = document.getElementById("studentList");
+        studentListContainer.innerHTML = "";
+
+        students.forEach((student) => {
+          const studentCard = document.createElement("div");
+          studentCard.className = "student-card";
+          studentCard.style.cursor = "pointer";
+
+          // Apply highlighting if this student is selected
+          if (highlightedStudent === student.reg) {
+            studentCard.classList.add("highlighted");
+            // Set a data attribute for easier targeting
+            studentCard.setAttribute("data-reg", student.reg);
+          }
+
+          studentCard.innerHTML = `
+                    <div class="student-name">${student.name}</div>
+                    <div class="student-details">
+                        <span>Reg: ${student.reg}</span>
+                        <span>Room: ${student.room}</span>
+                        <span>Class: ${student.class}</span>
+                    </div>
+                `;
+
+          // Add click event to show details
+          studentCard.onclick = () => showStudentDetails(student);
+          studentListContainer.appendChild(studentCard);
+        });
+
+        // If there's a highlighted student, scroll to it after a brief delay
+        if (highlightedStudent) {
+          setTimeout(() => {
+            scrollToHighlightedStudent();
+          }, 100);
+        }
+      }
+
+      // Update room buttons
+      function updateRoomButtons() {
+        const roomButtons = document.querySelectorAll(".room-btn");
+        roomButtons.forEach((button, index) => {
+          button.classList.remove("active");
+          if (currentRoomIndex === -1 && index === 0) {
+            button.classList.add("active");
+          } else if (currentRoomIndex === index - 1) {
+            button.classList.add("active");
+          }
+        });
+      }
+
+      // Update stats
+      function updateStats() {
+        const totalRooms = allRooms.length;
+        const totalStudents = allStudents.length;
+
+        let currentRoomStudents = 0;
+        if (currentRoomIndex !== -1) {
+          const room = allRooms[currentRoomIndex];
+          currentRoomStudents = studentsData[room]
+            ? studentsData[room].length
+            : 0;
+        } else {
+          currentRoomStudents = totalStudents;
+        }
+
+        document.getElementById("roomCount").textContent = totalRooms;
+        document.getElementById("studentCount").textContent = totalStudents;
+        document.getElementById("currentRoomStudents").textContent =
+          currentRoomStudents;
+      }
+
+      // Show error state
+      function showErrorState(message) {
+        const studentListContainer = document.getElementById("studentList");
+        studentListContainer.innerHTML = `
+                <div class="empty-state">
+                    <h3>⚠️ সমস্যা হয়েছে</h3>
+                    <p>${message}</p>
+                    <button onclick="loadStudentData()" style="
+                        margin-top: 20px;
+                        padding: 12px 24px;
+                        background: linear-gradient(135deg, #0f4c75 0%, #3282b8 100%);
+                        color: white;
+                        border: none;
+                        border-radius: 25px;
+                        cursor: pointer;
+                        font-weight: 600;
+                        transition: all 0.3s ease;
+                    ">আবার চেষ্টা করুন</button>
+                </div>
+            `;
+      }
+
+      // Add loading states and smooth transitions
+      function addSmoothTransitions() {
+        const style = document.createElement("style");
+        style.textContent = `
+                .student-card {
+                    opacity: 0;
+                    transform: translateY(20px);
+                    animation: slideInUp 0.3s ease forwards;
+                }
+                
+                .student-card:nth-child(1) { animation-delay: 0.1s; }
+                .student-card:nth-child(2) { animation-delay: 0.15s; }
+                .student-card:nth-child(3) { animation-delay: 0.2s; }
+                .student-card:nth-child(4) { animation-delay: 0.25s; }
+                .student-card:nth-child(5) { animation-delay: 0.3s; }
+                .student-card:nth-child(n+6) { animation-delay: 0.35s; }
+                
+                @keyframes slideInUp {
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+            `;
+        document.head.appendChild(style);
+      }
+
+      // Initialize smooth transitions
+      addSmoothTransitions();
+
+      // Add touch/swipe support for mobile
+      let touchStartX = 0;
+      let touchEndX = 0;
+
+      document.addEventListener("touchstart", (e) => {
+        touchStartX = e.changedTouches[0].screenX;
+      });
+
+      document.addEventListener("touchend", (e) => {
+        touchEndX = e.changedTouches[0].screenX;
+        handleSwipe();
+      });
+
+      function handleSwipe() {
+        const swipeThreshold = 50;
+        const diff = touchStartX - touchEndX;
+
+        if (Math.abs(diff) > swipeThreshold) {
+          if (diff > 0 && currentRoomIndex < allRooms.length - 1) {
+            // Swipe left - next room
+            switchToRoom(currentRoomIndex + 1);
+          } else if (diff < 0 && currentRoomIndex > -1) {
+            // Swipe right - previous room
+            if (currentRoomIndex === 0) {
+              showAllRooms();
+            } else {
+              switchToRoom(currentRoomIndex - 1);
+            }
+          }
+        }
+      }
+
+      // Add keyboard navigation
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "ArrowLeft") {
+          if (currentRoomIndex > -1) {
+            if (currentRoomIndex === 0) {
+              showAllRooms();
+            } else {
+              switchToRoom(currentRoomIndex - 1);
+            }
+          }
+        } else if (e.key === "ArrowRight") {
+          if (currentRoomIndex < allRooms.length - 1) {
+            if (currentRoomIndex === -1) {
+              switchToRoom(0);
+            } else {
+              switchToRoom(currentRoomIndex + 1);
+            }
+          }
+        }
+      });
+
+      // Add service worker for offline functionality (optional)
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker
+            .register("/sw.js")
+            .then((registration) => {
+              console.log("SW registered: ", registration);
+            })
+            .catch((registrationError) => {
+              console.log("SW registration failed: ", registrationError);
+            });
+        });
+      }
+    </script>
+  </body>
+</html>
