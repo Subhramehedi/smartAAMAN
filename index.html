@@ -924,19 +924,6 @@
         <button class="blast-effect" onclick="startAttendance()">
           শুরু করুন
         </button>
-
-        <!-- 🔍 NEW: Search Student Button -->
-        <button
-          class="blast-effect"
-          onclick="window.open('student search.html', '_blank')"
-          style="
-            margin-top: 10px;
-            background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);
-            color: white;
-          "
-        >
-          🔍 Search Student
-        </button>
       </div>
     </div>
 
@@ -1244,7 +1231,7 @@
       const TELEGRAM_CHAT_ID = "-4814783764";
 
       const staffCredentials = {
-        creator: { name: "Subhra Mehedi", password: "8597111396" },
+        staff: { name: "Subhra Mehedi", password: "8597111396" },
         staff02: { name: "Saddam Khan", password: "7548976846" },
         staff03: { name: "Safiqul Alam", password: "9732429502" },
         staff04: { name: "Sk Atikur Rahaman", password: "9775256530" },
@@ -1338,7 +1325,7 @@
 
       // Google Apps Script Web App URL (Replace with your deployed URL)
       const WEB_APP_URL =
-        "https://script.google.com/macros/s/AKfycbwKrCMUDbF5k6HAnHiE94gV5jZ52rXGTDepez8OkqxA1YVXJcBUsvflSbBgcr7b5UsO/exec"; // REPLACE WITH YOUR DEPLOYED WEB APP URL
+        "https://script.google.com/macros/s/AKfycbzqb9kfEDLdrpOdfoPGcCDofd5QfA-vW9jx9qN7zBr1wKIyT-ql1R9znURporWNKopcXA/exec"; // REPLACE WITH YOUR DEPLOYED WEB APP URL
 
       // This will now be populated dynamically
       let studentsData = {};
@@ -1554,7 +1541,7 @@
           const locationStatus =
             staffLocation.distance !== "Unknown" &&
             !isNaN(staffLocation.distance) &&
-            staffLocation.distance <= 1500
+            staffLocation.distance <= 500
               ? "✅ সঠিক স্থানে"
               : "⚠️ দূরে অবস্থান";
 
@@ -2172,6 +2159,4 @@
       });
     </script>
   </body>
-  <html></html>
 </html>
-
