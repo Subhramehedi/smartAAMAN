@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Al Ameen Mission Academy Nayabaz Attendance Viewer</title>
 
-    <!-- Google Fonts - Poppins for a more modern look -->
+    <!-- Google Fonts - Poppins for a modern look -->
     <link
       href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap"
       rel="stylesheet"
@@ -161,6 +161,78 @@
         box-shadow: 0 0 10px rgba(50, 130, 184, 0.2);
       }
 
+      /* Student List Search Box */
+      .student-search-container {
+        position: sticky;
+        top: 0;
+        background: white;
+        z-index: 10;
+        padding-bottom: 10px;
+        margin-bottom: 10px;
+        border-bottom: 2px solid #e9ecef;
+      }
+
+      .student-search-box {
+        position: relative;
+      }
+
+      .student-search-input {
+        width: 100%;
+        padding: 10px 40px 10px 12px;
+        border: 2px solid #e9ecef;
+        border-radius: 8px;
+        font-size: 13px;
+        transition: all 0.3s ease;
+        background: #f8f9fa;
+      }
+
+      .student-search-input:focus {
+        outline: none;
+        border-color: #3282b8;
+        box-shadow: 0 0 8px rgba(50, 130, 184, 0.2);
+        background: white;
+      }
+
+      .search-icon {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #6c757d;
+        font-size: 16px;
+        pointer-events: none;
+      }
+
+      .clear-search {
+        position: absolute;
+        right: 35px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: #dc3545;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 18px;
+        height: 18px;
+        font-size: 12px;
+        cursor: pointer;
+        display: none;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .clear-search:hover {
+        background: #c82333;
+      }
+
+      /* Search Results Counter */
+      .search-results-counter {
+        font-size: 12px;
+        color: #6c757d;
+        margin-top: 5px;
+        text-align: center;
+      }
+
       /* Button Styles */
       .btn {
         padding: 12px 20px;
@@ -239,6 +311,7 @@
         margin-bottom: 8px;
         border-left: 4px solid #e9ecef;
         transition: all 0.3s ease;
+        display: block;
       }
 
       .student-card:hover {
@@ -254,6 +327,10 @@
       .student-card.absent {
         border-left-color: #dc3545;
         background: linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%);
+      }
+
+      .student-card.hidden {
+        display: none;
       }
 
       .student-name {
@@ -285,6 +362,22 @@
       .status-absent {
         background: #dc3545;
         color: white;
+      }
+
+      /* Highlight searched text */
+      .highlight {
+        background-color: #fff3cd;
+        padding: 1px 2px;
+        border-radius: 3px;
+        font-weight: bold;
+      }
+
+      /* No results message */
+      .no-results {
+        text-align: center;
+        padding: 20px;
+        color: #6c757d;
+        font-style: italic;
       }
 
       /* Date History */
@@ -390,6 +483,29 @@
         opacity: 0.5;
       }
 
+      /* Section Headers with Search */
+      .section-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 10px;
+        margin-top: 20px;
+      }
+
+      .section-title {
+        font-size: 16px;
+        font-weight: 600;
+        margin: 0;
+      }
+
+      .section-title.present {
+        color: #0f4c75;
+      }
+
+      .section-title.absent {
+        color: #dc3545;
+      }
+
       /* Responsive Design */
       @media (max-width: 480px) {
         .container {
@@ -411,6 +527,17 @@
         .stat-item {
           flex: 1;
           min-width: 80px;
+        }
+
+        .section-header {
+          flex-direction: column;
+          align-items: stretch;
+          gap: 10px;
+        }
+
+        .student-search-input {
+          font-size: 12px;
+          padding: 8px 35px 8px 10px;
         }
       }
     </style>
@@ -476,7 +603,7 @@
             <input
               type="text"
               id="studentInput"
-              placeholder="e.g., John Doe or 12345"
+              placeholder="e.g., Subhra Mehedi or 12345"
             />
           </div>
           <button class="btn btn-primary" onclick="searchStudent()">
@@ -503,6 +630,10 @@
       // Replace with your deployed Google Apps Script Web App URL
       const WEB_APP_URL =
         "https://script.google.com/macros/s/AKfycbydWwC0A1UKrT72UULMBjMoyVzfPk9BWGzYHIJTPb5590fNiJiv4mdlSMj7R_cQVvTmfg/exec";
+
+      // Global variables to store current data for searching
+      let currentPresentStudents = [];
+      let currentAbsentStudents = [];
 
       // Tab switching functionality
       function switchTab(tabName) {
@@ -531,6 +662,9 @@
         document.getElementById("dateResults").innerHTML = "";
         document.getElementById("studentResults").innerHTML = "";
         document.getElementById("datesResults").innerHTML = "";
+        // Reset global variables
+        currentPresentStudents = [];
+        currentAbsentStudents = [];
       }
 
       // Show loading spinner
@@ -586,6 +720,192 @@
         return `${day} ${monthNames[parseInt(month) - 1]} ${year}`;
       }
 
+      // Highlight search terms in text
+      function highlightSearchTerm(text, searchTerm) {
+        if (!searchTerm || !text) return text;
+        const regex = new RegExp(`(${escapeRegex(searchTerm)})`, "gi");
+        return text.replace(regex, '<span class="highlight">$1</span>');
+      }
+
+      // Escape regex special characters
+      function escapeRegex(string) {
+        return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      }
+
+      // Filter student cards based on search term
+      function filterStudentCards(searchTerm, containerClass) {
+        const cards = document.querySelectorAll(
+          `.${containerClass} .student-card`
+        );
+        const searchLower = searchTerm.toLowerCase();
+        let visibleCount = 0;
+
+        cards.forEach((card) => {
+          const nameElement = card.querySelector(".student-name");
+          const detailsElement = card.querySelector(".student-details");
+
+          if (!nameElement || !detailsElement) return;
+
+          const name = nameElement.textContent.toLowerCase();
+          const details = detailsElement.textContent.toLowerCase();
+
+          if (name.includes(searchLower) || details.includes(searchLower)) {
+            card.classList.remove("hidden");
+            visibleCount++;
+
+            // Highlight search terms
+            if (searchTerm) {
+              const originalName = nameElement.textContent;
+              const originalDetails = detailsElement.textContent;
+              nameElement.innerHTML = highlightSearchTerm(
+                originalName,
+                searchTerm
+              );
+              detailsElement.innerHTML = highlightSearchTerm(
+                originalDetails,
+                searchTerm
+              );
+            }
+          } else {
+            card.classList.add("hidden");
+          }
+        });
+
+        return visibleCount;
+      }
+
+      // Clear search highlights
+      function clearHighlights(containerClass) {
+        const cards = document.querySelectorAll(
+          `.${containerClass} .student-card`
+        );
+        cards.forEach((card) => {
+          const nameElement = card.querySelector(".student-name");
+          const detailsElement = card.querySelector(".student-details");
+
+          if (nameElement) {
+            nameElement.innerHTML = nameElement.textContent;
+          }
+          if (detailsElement) {
+            detailsElement.innerHTML = detailsElement.textContent;
+          }
+
+          card.classList.remove("hidden");
+        });
+      }
+
+      // Create search box for student lists
+      function createSearchBox(containerId, listType, totalCount) {
+        const searchId = `${containerId}-${listType}-search`;
+        const counterId = `${containerId}-${listType}-counter`;
+
+        return `
+          <div class="student-search-container">
+            <div class="student-search-box">
+              <input 
+                type="text" 
+                class="student-search-input" 
+                id="${searchId}"
+                placeholder="🔍 Search ${listType} students by name or registration..."
+                oninput="handleStudentSearch('${searchId}', '${listType}-students', '${counterId}', ${totalCount})"
+              >
+              <button class="clear-search" id="${searchId}-clear" onclick="clearStudentSearch('${searchId}', '${listType}-students', '${counterId}', ${totalCount})">×</button>
+              <span class="search-icon">🔍</span>
+            </div>
+            <div class="search-results-counter" id="${counterId}">Showing ${totalCount} of ${totalCount} students</div>
+          </div>
+        `;
+      }
+
+      // Handle student list search
+      function handleStudentSearch(
+        searchInputId,
+        containerClass,
+        counterId,
+        totalCount
+      ) {
+        const searchInput = document.getElementById(searchInputId);
+        const clearButton = document.getElementById(searchInputId + "-clear");
+        const counter = document.getElementById(counterId);
+        const searchTerm = searchInput.value.trim();
+
+        // Show/hide clear button
+        if (searchTerm) {
+          clearButton.style.display = "flex";
+        } else {
+          clearButton.style.display = "none";
+        }
+
+        // Filter cards
+        if (searchTerm) {
+          const visibleCount = filterStudentCards(searchTerm, containerClass);
+          counter.textContent = `Showing ${visibleCount} of ${totalCount} students`;
+
+          if (visibleCount === 0) {
+            // Show no results message
+            let noResultsDiv = document.querySelector(
+              `.${containerClass} .no-results`
+            );
+            if (!noResultsDiv) {
+              noResultsDiv = document.createElement("div");
+              noResultsDiv.className = "no-results";
+              document
+                .querySelector(`.${containerClass}`)
+                .appendChild(noResultsDiv);
+            }
+            noResultsDiv.innerHTML = `<p>No students found matching "${searchTerm}"</p>`;
+            noResultsDiv.style.display = "block";
+          } else {
+            // Hide no results message
+            const noResultsDiv = document.querySelector(
+              `.${containerClass} .no-results`
+            );
+            if (noResultsDiv) {
+              noResultsDiv.style.display = "none";
+            }
+          }
+        } else {
+          // Clear search
+          clearHighlights(containerClass);
+          counter.textContent = `Showing ${totalCount} of ${totalCount} students`;
+
+          // Hide no results message
+          const noResultsDiv = document.querySelector(
+            `.${containerClass} .no-results`
+          );
+          if (noResultsDiv) {
+            noResultsDiv.style.display = "none";
+          }
+        }
+      }
+
+      // Clear student search
+      function clearStudentSearch(
+        searchInputId,
+        containerClass,
+        counterId,
+        totalCount
+      ) {
+        const searchInput = document.getElementById(searchInputId);
+        const clearButton = document.getElementById(searchInputId + "-clear");
+        const counter = document.getElementById(counterId);
+
+        searchInput.value = "";
+        clearButton.style.display = "none";
+        clearHighlights(containerClass);
+        counter.textContent = `Showing ${totalCount} of ${totalCount} students`;
+
+        // Hide no results message
+        const noResultsDiv = document.querySelector(
+          `.${containerClass} .no-results`
+        );
+        if (noResultsDiv) {
+          noResultsDiv.style.display = "none";
+        }
+
+        searchInput.focus();
+      }
+
       // Search attendance by date
       async function searchByDate() {
         const dateInput = document.getElementById("dateInput").value.trim();
@@ -604,7 +924,7 @@
         if (!datePattern.test(dateInput)) {
           showError(
             resultsContainer,
-            "Please enter date in DD-MM-YYYY format (e.g., 25-10-2023)."
+            "Please enter date in DD-MM-YYYY format (e.g., 17-11-2012)."
           );
           return;
         }
@@ -637,9 +957,13 @@
         }
       }
 
-      // Display date results
+      // Display date results with enhanced search functionality
       function displayDateResults(data, containerId) {
         const container = document.getElementById(containerId);
+
+        // Store current data globally
+        currentPresentStudents = data.presentStudents || [];
+        currentAbsentStudents = data.absentStudents || [];
 
         let html = `
           <div class="info">
@@ -672,8 +996,17 @@
         // Present Students
         if (data.presentStudents.length > 0) {
           html += `
-            <h3 style="color: #0f4c75; margin-bottom: 10px; font-size: 16px;">✅ Present Students (${data.presentStudents.length})</h3>
-            <div class="student-list">
+            <div class="section-header">
+              <h3 class="section-title present">✅ Present Students (${
+                data.presentStudents.length
+              })</h3>
+            </div>
+            ${createSearchBox(
+              containerId,
+              "present",
+              data.presentStudents.length
+            )}
+            <div class="student-list present-students">
           `;
 
           data.presentStudents.forEach((student) => {
@@ -692,8 +1025,17 @@
         // Absent Students
         if (data.absentStudents.length > 0) {
           html += `
-            <h3 style="color: #dc3545; margin-bottom: 10px; margin-top: 20px; font-size: 16px;">❌ Absent Students (${data.absentStudents.length})</h3>
-            <div class="student-list">
+            <div class="section-header">
+              <h3 class="section-title absent">❌ Absent Students (${
+                data.absentStudents.length
+              })</h3>
+            </div>
+            ${createSearchBox(
+              containerId,
+              "absent",
+              data.absentStudents.length
+            )}
+            <div class="student-list absent-students">
           `;
 
           data.absentStudents.forEach((student) => {
