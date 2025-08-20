@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Al Ameen Mission Academy Nayabaz Attendance Viewer</title>
+
+    <!-- Google Fonts - Poppins for a more modern look -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* Base Styles */
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Poppins", sans-serif;
+        background: linear-gradient(
+          135deg,
+          #0f4c75 0%,
+          #3282b8 50%,
+          #bbe1fa 100%
+        );
+        min-height: 100vh;
+        padding: 10px;
+      }
+
+      .container {
+        max-width: 500px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+      }
+
+      .header {
+        background: linear-gradient(135deg, #0f4c75 0%, #3282b8 100%);
+        padding: 20px;
+        text-align: center;
+        color: white;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .header::before {
+        content: "";
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="islamic-pattern" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="10" cy="10" r="2" fill="rgba(255,255,255,0.1)"/><path d="M10 5 L15 10 L10 15 L5 10 Z" fill="rgba(255,255,255,0.05)"/></pattern></defs><rect width="100" height="100" fill="url(%23islamic-pattern)"/></svg>')
+          repeat;
+        z-index: 1;
+      }
+
+      .header-content {
+        position: relative;
+        z-index: 2;
+      }
+
+      .logo {
+        width: 60px;
+        height: 60px;
+        background: linear-gradient(135deg, #ffd700 0%, #ffa500 100%);
+        border-radius: 50%;
+        margin: 0 auto 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+        border: 3px solid rgba(255, 255, 255, 0.3);
+      }
+
+      .header h1 {
+        font-size: 1.3rem;
+        margin-bottom: 10px;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        font-weight: 600;
+      }
+
+      /* Navigation Tabs */
+      .nav-tabs {
+        display: flex;
+        background: #f8f9fa;
+        border-bottom: 1px solid #e9ecef;
+      }
+
+      .nav-tab {
+        flex: 1;
+        padding: 15px 10px;
+        text-align: center;
+        cursor: pointer;
+        background: #f8f9fa;
+        border: none;
+        font-size: 12px;
+        font-weight: 600;
+        color: #495057;
+        transition: all 0.3s ease;
+      }
+
+      .nav-tab.active {
+        background: linear-gradient(135deg, #0f4c75 0%, #3282b8 100%);
+        color: white;
+      }
+
+      .nav-tab:hover:not(.active) {
+        background: #e9ecef;
+      }
+
+      /* Content Sections */
+      .content-section {
+        display: none;
+        padding: 20px;
+        max-height: 70vh;
+        overflow-y: auto;
+      }
+
+      .content-section.active {
+        display: block;
+      }
+
+      /* Search and Input Styles */
+      .search-section {
+        margin-bottom: 20px;
+      }
+
+      .input-group {
+        margin-bottom: 15px;
+      }
+
+      .input-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 600;
+        color: #495057;
+        font-size: 14px;
+      }
+
+      .input-group input,
+      .input-group select {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid #e9ecef;
+        border-radius: 10px;
+        font-size: 14px;
+        transition: border-color 0.3s ease;
+      }
+
+      .input-group input:focus,
+      .input-group select:focus {
+        outline: none;
+        border-color: #3282b8;
+        box-shadow: 0 0 10px rgba(50, 130, 184, 0.2);
+      }
+
+      /* Button Styles */
+      .btn {
+        padding: 12px 20px;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        width: 100%;
+        margin-bottom: 10px;
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, #0f4c75 0%, #3282b8 100%);
+        color: white;
+        box-shadow: 0 4px 8px rgba(15, 76, 117, 0.3);
+      }
+
+      .btn-primary:hover:not(:disabled) {
+        background: linear-gradient(135deg, #3282b8 0%, #0f4c75 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(15, 76, 117, 0.4);
+      }
+
+      .btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      /* Stats Display */
+      .stats {
+        display: flex;
+        justify-content: space-around;
+        margin-bottom: 20px;
+        padding: 15px;
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-radius: 10px;
+      }
+
+      .stat-item {
+        text-align: center;
+      }
+
+      .stat-number {
+        font-size: 20px;
+        font-weight: bold;
+        color: #495057;
+      }
+
+      .stat-label {
+        font-size: 12px;
+        color: #6c757d;
+        margin-top: 5px;
+      }
+
+      .stat-present {
+        color: #0f4c75;
+      }
+
+      .stat-absent {
+        color: #dc3545;
+      }
+
+      /* Student Cards */
+      .student-list {
+        max-height: 400px;
+        overflow-y: auto;
+      }
+
+      .student-card {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 12px;
+        margin-bottom: 8px;
+        border-left: 4px solid #e9ecef;
+        transition: all 0.3s ease;
+      }
+
+      .student-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      }
+
+      .student-card.present {
+        border-left-color: #0f4c75;
+        background: linear-gradient(135deg, #e8f4fd 0%, #d1e7f0 100%);
+      }
+
+      .student-card.absent {
+        border-left-color: #dc3545;
+        background: linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%);
+      }
+
+      .student-name {
+        font-weight: 600;
+        color: #495057;
+        font-size: 14px;
+        margin-bottom: 3px;
+      }
+
+      .student-details {
+        font-size: 12px;
+        color: #6c757d;
+        margin-bottom: 5px;
+      }
+
+      .student-status {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 12px;
+        font-size: 10px;
+        font-weight: 600;
+      }
+
+      .status-present {
+        background: #0f4c75;
+        color: white;
+      }
+
+      .status-absent {
+        background: #dc3545;
+        color: white;
+      }
+
+      /* Date History */
+      .date-history {
+        margin-top: 15px;
+      }
+
+      .date-item {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 10px;
+        margin-bottom: 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-left: 4px solid #e9ecef;
+      }
+
+      .date-item.present {
+        border-left-color: #0f4c75;
+        background: linear-gradient(135deg, #e8f4fd 0%, #d1e7f0 100%);
+      }
+
+      .date-item.absent {
+        border-left-color: #dc3545;
+        background: linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%);
+      }
+
+      .date-info {
+        flex: 1;
+      }
+
+      .date-text {
+        font-weight: 600;
+        font-size: 13px;
+        color: #495057;
+      }
+
+      .staff-text {
+        font-size: 11px;
+        color: #6c757d;
+        margin-top: 2px;
+      }
+
+      /* Loading Styles */
+      .loading {
+        text-align: center;
+        padding: 20px;
+        color: #6c757d;
+      }
+
+      .loading-spinner {
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid #3282b8;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 10px;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* Error Styles */
+      .error {
+        background: linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%);
+        color: #dc3545;
+        padding: 15px;
+        border-radius: 10px;
+        margin-bottom: 15px;
+        font-size: 14px;
+        text-align: center;
+      }
+
+      /* Info Styles */
+      .info {
+        background: linear-gradient(135deg, #e8f4fd 0%, #d1e7f0 100%);
+        color: #0f4c75;
+        padding: 15px;
+        border-radius: 10px;
+        margin-bottom: 15px;
+        font-size: 14px;
+        text-align: center;
+      }
+
+      /* Empty State */
+      .empty-state {
+        text-align: center;
+        padding: 40px 20px;
+        color: #6c757d;
+      }
+
+      .empty-icon {
+        font-size: 48px;
+        margin-bottom: 15px;
+        opacity: 0.5;
+      }
+
+      /* Responsive Design */
+      @media (max-width: 480px) {
+        .container {
+          margin: 0;
+          border-radius: 0;
+          min-height: 100vh;
+        }
+
+        .nav-tab {
+          font-size: 11px;
+          padding: 12px 8px;
+        }
+
+        .stats {
+          flex-direction: row;
+          flex-wrap: wrap;
+        }
+
+        .stat-item {
+          flex: 1;
+          min-width: 80px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <div class="header-content">
+          <div class="logo">
+            <img
+              src="https://play-lh.googleusercontent.com/gufR1twVlU6_SzC-iIAD_8bLLf-XYVAwwwwJF-cphD32IX0GeHNLi4GrN42hRYDHg-A"
+              alt="Logo"
+              style="width: 100%; height: 100%; border-radius: 50%"
+            />
+          </div>
+          <h1>Al Ameen Mission Academy Nayabaz</h1>
+          <p style="font-size: 14px; opacity: 0.9; margin-top: 5px">
+            📊 Attendance Viewer
+          </p>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <div class="nav-tabs">
+        <button class="nav-tab active" onclick="switchTab('dateView')">
+          📅 Date View
+        </button>
+        <button class="nav-tab" onclick="switchTab('studentView')">
+          👤 Student View
+        </button>
+        <button class="nav-tab" onclick="switchTab('datesView')">
+          📋 All Dates
+        </button>
+      </div>
+
+      <!-- Date View Section -->
+      <div id="dateView" class="content-section active">
+        <div class="search-section">
+          <div class="input-group">
+            <label for="dateInput">Select Date (DD-MM-YYYY):</label>
+            <input
+              type="text"
+              id="dateInput"
+              placeholder="e.g., 25-10-2023"
+              pattern="\d{2}-\d{2}-\d{4}"
+            />
+          </div>
+          <button class="btn btn-primary" onclick="searchByDate()">
+            🔍 View Attendance
+          </button>
+        </div>
+
+        <div id="dateResults"></div>
+      </div>
+
+      <!-- Student View Section -->
+      <div id="studentView" class="content-section">
+        <div class="search-section">
+          <div class="input-group">
+            <label for="studentInput"
+              >Student Name or Registration Number:</label
+            >
+            <input
+              type="text"
+              id="studentInput"
+              placeholder="e.g., John Doe or 12345"
+            />
+          </div>
+          <button class="btn btn-primary" onclick="searchStudent()">
+            🔍 View History
+          </button>
+        </div>
+
+        <div id="studentResults"></div>
+      </div>
+
+      <!-- All Dates View Section -->
+      <div id="datesView" class="content-section">
+        <div class="search-section">
+          <button class="btn btn-primary" onclick="loadAllDates()">
+            📋 Load All Available Dates
+          </button>
+        </div>
+
+        <div id="datesResults"></div>
+      </div>
+    </div>
+
+    <script>
+      // Replace with your deployed Google Apps Script Web App URL
+      const WEB_APP_URL =
+        "https://script.google.com/macros/s/AKfycbydWwC0A1UKrT72UULMBjMoyVzfPk9BWGzYHIJTPb5590fNiJiv4mdlSMj7R_cQVvTmfg/exec";
+
+      // Tab switching functionality
+      function switchTab(tabName) {
+        // Hide all content sections
+        document.querySelectorAll(".content-section").forEach((section) => {
+          section.classList.remove("active");
+        });
+
+        // Remove active class from all tabs
+        document.querySelectorAll(".nav-tab").forEach((tab) => {
+          tab.classList.remove("active");
+        });
+
+        // Show selected content section
+        document.getElementById(tabName).classList.add("active");
+
+        // Add active class to clicked tab
+        event.target.classList.add("active");
+
+        // Clear results when switching tabs
+        clearResults();
+      }
+
+      // Clear all results
+      function clearResults() {
+        document.getElementById("dateResults").innerHTML = "";
+        document.getElementById("studentResults").innerHTML = "";
+        document.getElementById("datesResults").innerHTML = "";
+      }
+
+      // Show loading spinner
+      function showLoading(containerId) {
+        document.getElementById(containerId).innerHTML = `
+          <div class="loading">
+            <div class="loading-spinner"></div>
+            <p>Loading...</p>
+          </div>
+        `;
+      }
+
+      // Show error message
+      function showError(containerId, message) {
+        document.getElementById(containerId).innerHTML = `
+          <div class="error">
+            <strong>❌ Error:</strong> ${message}
+          </div>
+        `;
+      }
+
+      // Show info message
+      function showInfo(containerId, message) {
+        document.getElementById(containerId).innerHTML = `
+          <div class="info">
+            <strong>ℹ️ Info:</strong> ${message}
+          </div>
+        `;
+      }
+
+      // Format date for display
+      function formatDate(dateStr) {
+        const parts = dateStr.split("-");
+        const day = parts[0];
+        const month = parts[1];
+        const year = parts[2];
+
+        const monthNames = [
+          "January",
+          "February",
+          "March",
+          "April",
+          "May",
+          "June",
+          "July",
+          "August",
+          "September",
+          "October",
+          "November",
+          "December",
+        ];
+
+        return `${day} ${monthNames[parseInt(month) - 1]} ${year}`;
+      }
+
+      // Search attendance by date
+      async function searchByDate() {
+        const dateInput = document.getElementById("dateInput").value.trim();
+        const resultsContainer = "dateResults";
+
+        if (!dateInput) {
+          showError(
+            resultsContainer,
+            "Please enter a date in DD-MM-YYYY format."
+          );
+          return;
+        }
+
+        // Validate date format
+        const datePattern = /^\d{2}-\d{2}-\d{4}$/;
+        if (!datePattern.test(dateInput)) {
+          showError(
+            resultsContainer,
+            "Please enter date in DD-MM-YYYY format (e.g., 25-10-2023)."
+          );
+          return;
+        }
+
+        showLoading(resultsContainer);
+
+        try {
+          const response = await fetch(
+            `${WEB_APP_URL}?action=getAttendanceByDate&date=${encodeURIComponent(
+              dateInput
+            )}`
+          );
+          if (!response.ok)
+            throw new Error(`HTTP error! status: ${response.status}`);
+
+          const data = await response.json();
+
+          if (data.status === "error") {
+            showError(resultsContainer, data.message);
+            return;
+          }
+
+          displayDateResults(data, resultsContainer);
+        } catch (error) {
+          console.error("Error fetching attendance by date:", error);
+          showError(
+            resultsContainer,
+            "Failed to fetch attendance data. Please check your connection and try again."
+          );
+        }
+      }
+
+      // Display date results
+      function displayDateResults(data, containerId) {
+        const container = document.getElementById(containerId);
+
+        let html = `
+          <div class="info">
+            <strong>📅 Date:</strong> ${formatDate(data.date)}<br>
+            
+          </div>
+          
+          <div class="stats">
+            <div class="stat-item">
+              <div class="stat-number">${data.totalStudents}</div>
+              <div class="stat-label">Total</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-number stat-present">${data.presentCount}</div>
+              <div class="stat-label">Present</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-number stat-absent">${data.absentCount}</div>
+              <div class="stat-label">Absent</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-number">${Math.round(
+                (data.presentCount / data.totalStudents) * 100
+              )}%</div>
+              <div class="stat-label">Attendance</div>
+            </div>
+          </div>
+        `;
+
+        // Present Students
+        if (data.presentStudents.length > 0) {
+          html += `
+            <h3 style="color: #0f4c75; margin-bottom: 10px; font-size: 16px;">✅ Present Students (${data.presentStudents.length})</h3>
+            <div class="student-list">
+          `;
+
+          data.presentStudents.forEach((student) => {
+            html += `
+              <div class="student-card present">
+                <div class="student-name">${student.name}</div>
+                <div class="student-details">Reg: ${student.reg} | Room: ${student.room} | Class: ${student.class}</div>
+                <span class="student-status status-present">✓ Present</span>
+              </div>
+            `;
+          });
+
+          html += "</div>";
+        }
+
+        // Absent Students
+        if (data.absentStudents.length > 0) {
+          html += `
+            <h3 style="color: #dc3545; margin-bottom: 10px; margin-top: 20px; font-size: 16px;">❌ Absent Students (${data.absentStudents.length})</h3>
+            <div class="student-list">
+          `;
+
+          data.absentStudents.forEach((student) => {
+            html += `
+              <div class="student-card absent">
+                <div class="student-name">${student.name}</div>
+                <div class="student-details">Reg: ${student.reg} | Room: ${student.room} | Class: ${student.class}</div>
+                <span class="student-status status-absent">✗ Absent</span>
+              </div>
+            `;
+          });
+
+          html += "</div>";
+        }
+
+        // Empty state
+        if (data.totalStudents === 0) {
+          html += `
+            <div class="empty-state">
+              <div class="empty-icon">📭</div>
+              <p>No attendance data found for this date.</p>
+            </div>
+          `;
+        }
+
+        container.innerHTML = html;
+      }
+
+      // Search student attendance history
+      async function searchStudent() {
+        const studentInput = document
+          .getElementById("studentInput")
+          .value.trim();
+        const resultsContainer = "studentResults";
+
+        if (!studentInput) {
+          showError(
+            resultsContainer,
+            "Please enter a student name or registration number."
+          );
+          return;
+        }
+
+        showLoading(resultsContainer);
+
+        try {
+          const response = await fetch(
+            `${WEB_APP_URL}?action=getStudentHistory&searchTerm=${encodeURIComponent(
+              studentInput
+            )}`
+          );
+          if (!response.ok)
+            throw new Error(`HTTP error! status: ${response.status}`);
+
+          const data = await response.json();
+
+          if (data.status === "error") {
+            showError(resultsContainer, data.message);
+            return;
+          }
+
+          displayStudentResults(data, resultsContainer);
+        } catch (error) {
+          console.error("Error fetching student history:", error);
+          showError(
+            resultsContainer,
+            "Failed to fetch student data. Please check your connection and try again."
+          );
+        }
+      }
+
+      // Display student results
+      function displayStudentResults(data, containerId) {
+        const container = document.getElementById(containerId);
+
+        let html = `
+          <div class="info">
+            <strong>👤 Student:</strong> ${data.studentInfo.name}<br>
+            <strong>🆔 Registration:</strong> ${data.studentInfo.reg}<br>
+            <strong>🏠 Room:</strong> ${data.studentInfo.room}<br>
+            <strong>📚 Class:</strong> ${data.studentInfo.class}
+          </div>
+          
+          <div class="stats">
+            <div class="stat-item">
+              <div class="stat-number">${data.totalDays}</div>
+              <div class="stat-label">Total Days</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-number stat-present">${data.presentDays}</div>
+              <div class="stat-label">Present</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-number stat-absent">${data.absentDays}</div>
+              <div class="stat-label">Absent</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-number">${data.attendancePercentage}%</div>
+              <div class="stat-label">Attendance</div>
+            </div>
+          </div>
+        `;
+
+        if (data.attendanceHistory.length > 0) {
+          html += `
+            <h3 style="color: #0f4c75; margin-bottom: 15px; font-size: 16px;">📋 Attendance History</h3>
+            <div class="date-history">
+          `;
+
+          data.attendanceHistory.forEach((record) => {
+            html += `
+              <div class="date-item ${record.status}">
+                <div class="date-info">
+                  <div class="date-text">${formatDate(record.date)}</div>
+                  <div class="staff-text">Staff: ${record.staffName}</div>
+                </div>
+                <span class="student-status ${
+                  record.status === "present"
+                    ? "status-present"
+                    : "status-absent"
+                }">
+                  ${record.status === "present" ? "✓ Present" : "✗ Absent"}
+                </span>
+              </div>
+            `;
+          });
+
+          html += "</div>";
+        } else {
+          html += `
+            <div class="empty-state">
+              <div class="empty-icon">📭</div>
+              <p>No attendance history found for this student.</p>
+            </div>
+          `;
+        }
+
+        container.innerHTML = html;
+      }
+
+      // Load all available dates
+      async function loadAllDates() {
+        const resultsContainer = "datesResults";
+
+        showLoading(resultsContainer);
+
+        try {
+          const response = await fetch(
+            `${WEB_APP_URL}?action=getAvailableDates`
+          );
+          if (!response.ok)
+            throw new Error(`HTTP error! status: ${response.status}`);
+
+          const data = await response.json();
+
+          if (data.status === "error") {
+            showError(resultsContainer, data.message);
+            return;
+          }
+
+          displayAllDates(data, resultsContainer);
+        } catch (error) {
+          console.error("Error fetching available dates:", error);
+          showError(
+            resultsContainer,
+            "Failed to fetch dates data. Please check your connection and try again."
+          );
+        }
+      }
+
+      // Display all available dates
+      function displayAllDates(data, containerId) {
+        const container = document.getElementById(containerId);
+
+        let html = `
+          <div class="info">
+            <strong>📅 Total Available Dates:</strong> ${data.totalDates}
+          </div>
+        `;
+
+        if (data.availableDates.length > 0) {
+          html += `
+            <h3 style="color: #0f4c75; margin-bottom: 15px; font-size: 16px;">📋 Available Attendance Dates</h3>
+            <div class="date-history">
+          `;
+
+          data.availableDates.forEach((date) => {
+            html += `
+              <div class="date-item" style="cursor: pointer;" onclick="selectDateFromList('${date}')">
+                <div class="date-info">
+                  <div class="date-text">${formatDate(date)}</div>
+                  <div class="staff-text">Click to view attendance</div>
+                </div>
+                <span style="color: #0f4c75; font-size: 12px;">👁️ View</span>
+              </div>
+            `;
+          });
+
+          html += "</div>";
+        } else {
+          html += `
+            <div class="empty-state">
+              <div class="empty-icon">📭</div>
+              <p>No attendance dates found in the system.</p>
+            </div>
+          `;
+        }
+
+        container.innerHTML = html;
+      }
+
+      // Select date from list and switch to date view
+      function selectDateFromList(date) {
+        // Switch to date view tab
+        switchTab("dateView");
+
+        // Fill the date input
+        document.getElementById("dateInput").value = date;
+
+        // Automatically search
+        searchByDate();
+      }
+
+      // Initialize the application
+      document.addEventListener("DOMContentLoaded", function () {
+        // Set focus on date input
+        document.getElementById("dateInput").focus();
+
+        // Add enter key listeners
+        document
+          .getElementById("dateInput")
+          .addEventListener("keypress", function (e) {
+            if (e.key === "Enter") {
+              searchByDate();
+            }
+          });
+
+        document
+          .getElementById("studentInput")
+          .addEventListener("keypress", function (e) {
+            if (e.key === "Enter") {
+              searchStudent();
+            }
+          });
+
+        // Load available dates on startup
+        loadAllDates();
+      });
+    </script>
+  </body>
+</html>
