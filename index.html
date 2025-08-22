@@ -873,6 +873,83 @@
         object-fit: cover;
         margin-bottom: 20px;
       }
+
+      /* Attendance Report Modal Styles */
+      .report-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.9);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
+      }
+
+      .report-modal.show {
+        opacity: 1;
+        visibility: visible;
+      }
+
+      .report-content {
+        width: 95%;
+        height: 95%;
+        max-width: 1200px;
+        background: white;
+        border-radius: 20px;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+
+      .report-header {
+        background: linear-gradient(135deg, #0f4c75 0%, #3282b8 100%);
+        color: white;
+        padding: 20px;
+        text-align: center;
+        position: relative;
+      }
+
+      .report-close-btn {
+        position: absolute;
+        right: 20px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: rgba(255, 255, 255, 0.2);
+        border: none;
+        color: white;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        cursor: pointer;
+        font-size: 20px;
+        transition: all 0.3s ease;
+      }
+
+      .report-close-btn:hover {
+        background: rgba(255, 255, 255, 0.3);
+        transform: translateY(-50%) scale(1.1);
+      }
+
+      .report-iframe {
+        flex: 1;
+        border: none;
+        width: 100%;
+        height: 100%;
+      }
+
+      @media (max-width: 768px) {
+        .report-content {
+          width: 100%;
+          height: 100%;
+          border-radius: 0;
+        }
+      }
     </style>
   </head>
   <body>
@@ -923,6 +1000,16 @@
         <!-- Added blast-effect class -->
         <button class="blast-effect" onclick="startAttendance()">
           শুরু করুন
+        </button>
+        <button
+          class="blast-effect"
+          onclick="openAttendanceReport()"
+          style="
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            margin-top: 10px;
+          "
+        >
+          📊 Attendance Report
         </button>
       </div>
     </div>
@@ -1245,7 +1332,7 @@
         staff12: { name: "Shukur Ali Middya", password: "9330893655" },
         staff13: { name: "Rajibul Hossain Khan", password: "8670392187" },
         staff14: { name: "Suraj Khan", password: "9062974318" },
-        staff15: { name: "Sk Irfan", password: "7679768416" },
+        staff15: { name: "Sk Irfan", password: "7679768416" },
       };
 
       // Device Fingerprinting Function
@@ -2139,7 +2226,7 @@
       document.addEventListener("DOMContentLoaded", () => {
         // Apply blast effect to all relevant buttons
         const buttonsToAnimate = document.querySelectorAll(
-          ".room-btn, .nav-btn, .action-btn, .toggle-btn, .login-box button, .camera-btn"
+          ".room-btn, .nav-btn, .action-btn, .toggle-btn, .login-box button, .camera-btn, .report-close-btn"
         );
 
         buttonsToAnimate.forEach((button) => {
@@ -2157,10 +2244,66 @@
           .getElementById("sendBtn")
           .addEventListener("click", addBlastEffect);
       });
+
+      // Open Attendance Report Modal
+      function openAttendanceReport() {
+        const modal = document.getElementById("reportModal");
+        const iframe = document.getElementById("reportIframe");
+
+        // Set the iframe source to your attendance report HTML file
+        iframe.src = "attendence report.html"; // Make sure this path is correct
+
+        modal.classList.add("show");
+      }
+
+      // Close Attendance Report Modal
+      function closeAttendanceReport() {
+        const modal = document.getElementById("reportModal");
+        const iframe = document.getElementById("reportIframe");
+
+        modal.classList.remove("show");
+
+        // Clear iframe source to stop any ongoing processes
+        setTimeout(() => {
+          iframe.src = "";
+        }, 300);
+      }
+
+      // Close modal when clicking outside the content
+      document.addEventListener("DOMContentLoaded", function () {
+        const modal = document.getElementById("reportModal");
+
+        modal.addEventListener("click", function (e) {
+          if (e.target === modal) {
+            closeAttendanceReport();
+          }
+        });
+
+        // ESC key to close modal
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "Escape" && modal.classList.contains("show")) {
+            closeAttendanceReport();
+          }
+        });
+      });
     </script>
+
+    <!-- Attendance Report Modal -->
+    <div id="reportModal" class="report-modal">
+      <div class="report-content">
+        <div class="report-header">
+          <h2>📊 Al Ameen Mission Academy - Attendance Report</h2>
+          <button class="report-close-btn" onclick="closeAttendanceReport()">
+            ×
+          </button>
+        </div>
+        <iframe
+          id="reportIframe"
+          class="report-iframe"
+          src=""
+          title="Attendance Report"
+        ></iframe>
+      </div>
+    </div>
   </body>
 </html>
-
-
-
-
