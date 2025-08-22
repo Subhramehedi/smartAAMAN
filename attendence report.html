@@ -714,7 +714,7 @@
     <script>
       // Replace with your deployed Google Apps Script Web App URL
       const WEB_APP_URL =
-        "https://script.google.com/macros/s/AKfycbxTxJ08uEu_bcMXxAlZlzMfLQNlbekzGLttJ1HfClkk0cCyhSnFRxDepXMbVnRljwrxpA/exec";
+        "https://script.google.com/macros/s/AKfycbwJngWN-IqxsTPleZ-wsbVpmhwT_kOTrlz_wqEhPgEsBpYzvoDGtcOHxeznuP7nkCx4PQ/exec";
 
       // Global variables to store current data for searching
       let currentPresentStudents = [];
@@ -829,8 +829,9 @@
         noAttendanceStudents
       ) {
         const roomStats = {};
+        const roomStaffInfo = {}; // Track staff for each room
 
-        // Count present students by room
+        // Process present students
         presentStudents.forEach((student) => {
           const room = student.room;
           if (!roomStats[room]) {
@@ -843,9 +844,14 @@
           }
           roomStats[room].present++;
           roomStats[room].total++;
+
+          // Store staff info for this room
+          if (student.staffName && student.staffName !== "Unknown Staff") {
+            roomStaffInfo[room] = student.staffName;
+          }
         });
 
-        // Count absent students by room
+        // Process absent students
         absentStudents.forEach((student) => {
           const room = student.room;
           if (!roomStats[room]) {
@@ -858,9 +864,14 @@
           }
           roomStats[room].absent++;
           roomStats[room].total++;
+
+          // Store staff info for this room
+          if (student.staffName && student.staffName !== "Unknown Staff") {
+            roomStaffInfo[room] = student.staffName;
+          }
         });
 
-        // Count no attendance students by room
+        // Process no attendance students
         noAttendanceStudents.forEach((student) => {
           const room = student.room;
           if (!roomStats[room]) {
@@ -887,13 +898,14 @@
         }
 
         let html = `
-          <div class="room-stats">
-            <h4>🏠 Room-wise Attendance</h4>
-            <div class="room-grid">
-        `;
+    <div class="room-stats">
+      <h4>🏠 Room-wise Attendance with Staff Info</h4>
+      <div class="room-grid">
+  `;
 
         sortedRooms.forEach((room) => {
           const stats = roomStats[room];
+          const staffName = roomStaffInfo[room] || "Unknown Staff";
           const attendedCount = stats.present + stats.absent;
           const attendanceRate =
             attendedCount > 0
@@ -901,26 +913,29 @@
               : 0;
 
           html += `
-            <div class="room-item">
-              <div class="room-number">Room ${room}</div>
-              <div class="room-count present">✓ ${stats.present}</div>
-              <div class="room-count absent">✗ ${stats.absent}</div>
-              ${
-                stats.noAttendance > 0
-                  ? `<div class="room-count" style="color: #e67e22;">? ${stats.noAttendance}</div>`
-                  : ""
-              }
-              <div class="room-count" style="font-size: 9px; margin-top: 2px;">
-                ${attendedCount > 0 ? `(${attendanceRate}%)` : "(No data)"}
-              </div>
-            </div>
-          `;
+      <div class="room-item">
+        <div class="room-number">Room ${room}</div>
+        <div class="room-staff" style="font-size: 9px; color: #0f4c75; margin-bottom: 3px; font-weight: 500;">
+          👨‍🏫 ${staffName}
+        </div>
+        <div class="room-count present">✓ ${stats.present}</div>
+        <div class="room-count absent">✗ ${stats.absent}</div>
+        ${
+          stats.noAttendance > 0
+            ? `<div class="room-count" style="color: #e67e22;">? ${stats.noAttendance}</div>`
+            : ""
+        }
+        <div class="room-count" style="font-size: 9px; margin-top: 2px;">
+          ${attendedCount > 0 ? `(${attendanceRate}%)` : "(No data)"}
+        </div>
+      </div>
+    `;
         });
 
         html += `
-            </div>
-          </div>
-        `;
+      </div>
+    </div>
+  `;
 
         return html;
       }
