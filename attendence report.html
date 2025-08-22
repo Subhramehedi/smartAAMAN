@@ -1134,7 +1134,9 @@
         const absentStudents = currentAbsentStudents.filter(
           (student) => student.room === roomNumber
         );
-
+        const noAttendanceStudents = currentNoAttendanceStudents.filter(
+          (student) => student.room === roomNumber
+        );
         // Set modal title
         modalTitle.textContent = `Room ${roomNumber} Details`;
 
@@ -1192,14 +1194,28 @@
         }
 
         // No students case
+        // No students case
         if (presentStudents.length === 0 && absentStudents.length === 0) {
-          html += `
-            <div class="empty-state">
-              <div class="empty-icon">🔍</div>
-              <p>No students found for this room.</p>
-            </div>
-          `;
+          if (noAttendanceStudents.length > 0) {
+            html += `
+      <div class="empty-state">
+        <div class="empty-icon">❓</div>
+        <p>এই রুমের এটেন্ডেন্স কেও নেয়নি তবে</p>
+        <p><strong>Total Students:</strong> ${noAttendanceStudents.length}</p>
+      </div>
+    `;
+          } else {
+            html += `
+      <div class="empty-state">
+        <div class="empty-icon">🔍</div>
+        <p>No students found for this room.</p>
+      </div>
+    `;
+          }
         }
+
+        modalBody.innerHTML = html;
+        modal.classList.add("active");
 
         modalBody.innerHTML = html;
         modal.classList.add("active");
