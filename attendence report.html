@@ -298,6 +298,60 @@
         color: #dc3545;
       }
 
+      .stat-no-attendance {
+        color: #ffc107;
+      }
+
+      /* Room-wise Stats */
+      .room-stats {
+        margin-bottom: 20px;
+        padding: 15px;
+        background: linear-gradient(135deg, #e8f4fd 0%, #d1e7f0 100%);
+        border-radius: 10px;
+      }
+
+      .room-stats h4 {
+        color: #0f4c75;
+        margin-bottom: 10px;
+        font-size: 14px;
+        text-align: center;
+      }
+
+      .room-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+        gap: 8px;
+      }
+
+      .room-item {
+        background: white;
+        border-radius: 8px;
+        padding: 8px;
+        text-align: center;
+        border-left: 4px solid #3282b8;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      .room-number {
+        font-weight: 600;
+        color: #0f4c75;
+        font-size: 13px;
+        margin-bottom: 2px;
+      }
+
+      .room-count {
+        font-size: 11px;
+        color: #6c757d;
+      }
+
+      .room-count.present {
+        color: #28a745;
+      }
+
+      .room-count.absent {
+        color: #dc3545;
+      }
+
       /* Student Cards */
       .student-list {
         max-height: 400px;
@@ -327,6 +381,11 @@
       .student-card.absent {
         border-left-color: #dc3545;
         background: linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%);
+      }
+
+      .student-card.no-attendance {
+        border-left-color: #ffc107;
+        background: linear-gradient(135deg, #fff8e1 0%, #ffecb3 100%);
       }
 
       .student-card.hidden {
@@ -362,6 +421,11 @@
       .status-absent {
         background: #dc3545;
         color: white;
+      }
+
+      .status-no-attendance {
+        background: #ffc107;
+        color: #212529;
       }
 
       /* Highlight searched text */
@@ -506,6 +570,10 @@
         color: #dc3545;
       }
 
+      .section-title.no-attendance {
+        color: #e67e22;
+      }
+
       /* Responsive Design */
       @media (max-width: 480px) {
         .container {
@@ -526,7 +594,24 @@
 
         .stat-item {
           flex: 1;
-          min-width: 80px;
+          min-width: 70px;
+        }
+
+        .room-grid {
+          grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+          gap: 6px;
+        }
+
+        .room-item {
+          padding: 6px;
+        }
+
+        .room-number {
+          font-size: 12px;
+        }
+
+        .room-count {
+          font-size: 10px;
         }
 
         .section-header {
@@ -629,11 +714,12 @@
     <script>
       // Replace with your deployed Google Apps Script Web App URL
       const WEB_APP_URL =
-        "https://script.google.com/macros/s/AKfycbydWwC0A1UKrT72UULMBjMoyVzfPk9BWGzYHIJTPb5590fNiJiv4mdlSMj7R_cQVvTmfg/exec";
+        "https://script.google.com/macros/s/AKfycbxTxJ08uEu_bcMXxAlZlzMfLQNlbekzGLttJ1HfClkk0cCyhSnFRxDepXMbVnRljwrxpA/exec";
 
       // Global variables to store current data for searching
       let currentPresentStudents = [];
       let currentAbsentStudents = [];
+      let currentNoAttendanceStudents = [];
 
       // Tab switching functionality
       function switchTab(tabName) {
@@ -665,6 +751,7 @@
         // Reset global variables
         currentPresentStudents = [];
         currentAbsentStudents = [];
+        currentNoAttendanceStudents = [];
       }
 
       // Show loading spinner
@@ -718,6 +805,124 @@
         ];
 
         return `${day} ${monthNames[parseInt(month) - 1]} ${year}`;
+      }
+
+      // Calculate room-wise statistics
+      function calculateRoomStats(students) {
+        const roomStats = {};
+
+        students.forEach((student) => {
+          const room = student.room;
+          if (!roomStats[room]) {
+            roomStats[room] = { present: 0, absent: 0, total: 0 };
+          }
+          roomStats[room].total++;
+        });
+
+        return roomStats;
+      }
+
+      // Generate room-wise statistics HTML
+      function generateRoomStatsHTML(
+        presentStudents,
+        absentStudents,
+        noAttendanceStudents
+      ) {
+        const roomStats = {};
+
+        // Count present students by room
+        presentStudents.forEach((student) => {
+          const room = student.room;
+          if (!roomStats[room]) {
+            roomStats[room] = {
+              present: 0,
+              absent: 0,
+              noAttendance: 0,
+              total: 0,
+            };
+          }
+          roomStats[room].present++;
+          roomStats[room].total++;
+        });
+
+        // Count absent students by room
+        absentStudents.forEach((student) => {
+          const room = student.room;
+          if (!roomStats[room]) {
+            roomStats[room] = {
+              present: 0,
+              absent: 0,
+              noAttendance: 0,
+              total: 0,
+            };
+          }
+          roomStats[room].absent++;
+          roomStats[room].total++;
+        });
+
+        // Count no attendance students by room
+        noAttendanceStudents.forEach((student) => {
+          const room = student.room;
+          if (!roomStats[room]) {
+            roomStats[room] = {
+              present: 0,
+              absent: 0,
+              noAttendance: 0,
+              total: 0,
+            };
+          }
+          roomStats[room].noAttendance++;
+          roomStats[room].total++;
+        });
+
+        // Sort rooms numerically
+        const sortedRooms = Object.keys(roomStats).sort((a, b) => {
+          const numA = parseInt(a) || 999;
+          const numB = parseInt(b) || 999;
+          return numA - numB;
+        });
+
+        if (sortedRooms.length === 0) {
+          return "";
+        }
+
+        let html = `
+          <div class="room-stats">
+            <h4>🏠 Room-wise Attendance</h4>
+            <div class="room-grid">
+        `;
+
+        sortedRooms.forEach((room) => {
+          const stats = roomStats[room];
+          const attendedCount = stats.present + stats.absent;
+          const attendanceRate =
+            attendedCount > 0
+              ? Math.round((stats.present / attendedCount) * 100)
+              : 0;
+
+          html += `
+            <div class="room-item">
+              <div class="room-number">Room ${room}</div>
+              <div class="room-count present">✓ ${stats.present}</div>
+              <div class="room-count absent">✗ ${stats.absent}</div>
+              ${
+                stats.noAttendance > 0
+                  ? `<div class="room-count" style="color: #e67e22;">? ${stats.noAttendance}</div>`
+                  : ""
+              }
+              <div class="room-count" style="font-size: 9px; margin-top: 2px;">
+                ${attendedCount > 0 ? `(${attendanceRate}%)` : "(No data)"}
+              </div>
+            </div>
+          `;
+        });
+
+        html += `
+            </div>
+          </div>
+        `;
+
+        return html;
       }
 
       // Highlight search terms in text
@@ -957,13 +1162,21 @@
         }
       }
 
-      // Display date results with enhanced search functionality
+      // Display date results with enhanced search functionality and room-wise stats
       function displayDateResults(data, containerId) {
         const container = document.getElementById(containerId);
 
         // Store current data globally
         currentPresentStudents = data.presentStudents || [];
         currentAbsentStudents = data.absentStudents || [];
+        currentNoAttendanceStudents = data.noAttendanceStudents || [];
+
+        // Calculate stats with no attendance students
+        const attendanceTakenCount = data.presentCount + data.absentCount;
+        const attendancePercentage =
+          attendanceTakenCount > 0
+            ? Math.round((data.presentCount / attendanceTakenCount) * 100)
+            : 0;
 
         let html = `
           <div class="info">
@@ -985,13 +1198,30 @@
               <div class="stat-label">Absent</div>
             </div>
             <div class="stat-item">
-              <div class="stat-number">${Math.round(
-                (data.presentCount / data.totalStudents) * 100
-              )}%</div>
-              <div class="stat-label">Attendance</div>
+              <div class="stat-number stat-no-attendance">${
+                data.noAttendanceCount || 0
+              }</div>
+              <div class="stat-label">No Data</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-number">${attendancePercentage}%</div>
+              <div class="stat-label">Rate</div>
             </div>
           </div>
         `;
+
+        // Add room-wise statistics
+        if (
+          data.presentStudents.length > 0 ||
+          data.absentStudents.length > 0 ||
+          (data.noAttendanceStudents && data.noAttendanceStudents.length > 0)
+        ) {
+          html += generateRoomStatsHTML(
+            data.presentStudents,
+            data.absentStudents,
+            data.noAttendanceStudents || []
+          );
+        }
 
         // Present Students
         if (data.presentStudents.length > 0) {
@@ -1051,11 +1281,40 @@
           html += "</div>";
         }
 
+        // ✅ NEW: No Attendance Students Section
+        if (data.noAttendanceStudents && data.noAttendanceStudents.length > 0) {
+          html += `
+            <div class="section-header">
+              <h3 class="section-title no-attendance">❓ Attendance Not Taken (${
+                data.noAttendanceStudents.length
+              })</h3>
+            </div>
+            ${createSearchBox(
+              containerId,
+              "no-attendance",
+              data.noAttendanceStudents.length
+            )}
+            <div class="student-list no-attendance-students">
+          `;
+
+          data.noAttendanceStudents.forEach((student) => {
+            html += `
+              <div class="student-card no-attendance">
+                <div class="student-name">${student.name}</div>
+                <div class="student-details">Reg: ${student.reg} | Room: ${student.room} | Class: ${student.class}</div>
+                <span class="student-status status-no-attendance">? No Data</span>
+              </div>
+            `;
+          });
+
+          html += "</div>";
+        }
+
         // Empty state
         if (data.totalStudents === 0) {
           html += `
             <div class="empty-state">
-              <div class="empty-icon">📭</div>
+              <div class="empty-icon">🔭</div>
               <p>No attendance data found for this date.</p>
             </div>
           `;
@@ -1167,7 +1426,7 @@
         } else {
           html += `
             <div class="empty-state">
-              <div class="empty-icon">📭</div>
+              <div class="empty-icon">🔭</div>
               <p>No attendance history found for this student.</p>
             </div>
           `;
@@ -1238,7 +1497,7 @@
         } else {
           html += `
             <div class="empty-state">
-              <div class="empty-icon">📭</div>
+              <div class="empty-icon">🔭</div>
               <p>No attendance dates found in the system.</p>
             </div>
           `;
@@ -1287,4 +1546,3 @@
     </script>
   </body>
 </html>
-
