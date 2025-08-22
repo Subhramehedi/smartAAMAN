@@ -330,6 +330,13 @@
         text-align: center;
         border-left: 4px solid #3282b8;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .room-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
       }
 
       .room-number {
@@ -574,6 +581,155 @@
         color: #e67e22;
       }
 
+      /* Modal Styles */
+      .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0, 0, 0, 0.7);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        padding: 20px;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+      }
+
+      .modal-overlay.active {
+        opacity: 1;
+        visibility: visible;
+      }
+
+      .modal {
+        background: white;
+        border-radius: 15px;
+        width: 100%;
+        max-width: 500px;
+        max-height: 80vh;
+        overflow: hidden;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        transform: translateY(20px);
+        transition: transform 0.3s ease;
+      }
+
+      .modal-overlay.active .modal {
+        transform: translateY(0);
+      }
+
+      .modal-header {
+        background: linear-gradient(135deg, #0f4c75 0%, #3282b8 100%);
+        padding: 15px 20px;
+        color: white;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .modal-title {
+        font-size: 18px;
+        font-weight: 600;
+      }
+
+      .modal-close {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 24px;
+        cursor: pointer;
+        padding: 0;
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        transition: background 0.3s ease;
+      }
+
+      .modal-close:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
+
+      .modal-body {
+        padding: 20px;
+        max-height: 60vh;
+        overflow-y: auto;
+      }
+
+      .modal-staff-info {
+        background: #f8f9fa;
+        padding: 12px 15px;
+        border-radius: 10px;
+        margin-bottom: 15px;
+        font-size: 14px;
+        text-align: center;
+      }
+
+      .modal-staff-info strong {
+        color: #0f4c75;
+      }
+
+      .modal-section {
+        margin-bottom: 20px;
+      }
+
+      .modal-section-title {
+        font-size: 16px;
+        font-weight: 600;
+        margin-bottom: 10px;
+        color: #0f4c75;
+        display: flex;
+        align-items: center;
+      }
+
+      .modal-section-title.present::before {
+        content: "✅";
+        margin-right: 8px;
+      }
+
+      .modal-section-title.absent::before {
+        content: "❌";
+        margin-right: 8px;
+      }
+
+      .modal-student-list {
+        display: grid;
+        gap: 8px;
+      }
+
+      .modal-student-card {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 10px;
+        border-left: 4px solid #e9ecef;
+      }
+
+      .modal-student-card.present {
+        border-left-color: #0f4c75;
+        background: linear-gradient(135deg, #e8f4fd 0%, #d1e7f0 100%);
+      }
+
+      .modal-student-card.absent {
+        border-left-color: #dc3545;
+        background: linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%);
+      }
+
+      .modal-student-name {
+        font-weight: 600;
+        font-size: 14px;
+        color: #495057;
+        margin-bottom: 3px;
+      }
+
+      .modal-student-details {
+        font-size: 12px;
+        color: #6c757d;
+      }
+
       /* Responsive Design */
       @media (max-width: 480px) {
         .container {
@@ -623,6 +779,11 @@
         .student-search-input {
           font-size: 12px;
           padding: 8px 35px 8px 10px;
+        }
+
+        .modal {
+          max-width: 100%;
+          border-radius: 10px;
         }
       }
     </style>
@@ -711,6 +872,21 @@
       </div>
     </div>
 
+    <!-- Modal for Room Details -->
+    <div class="modal-overlay" id="roomModal">
+      <div class="modal">
+        <div class="modal-header">
+          <h3 class="modal-title" id="modalRoomTitle">Room Details</h3>
+          <button class="modal-close" onclick="closeRoomModal()">
+            &times;
+          </button>
+        </div>
+        <div class="modal-body" id="modalRoomBody">
+          <!-- Content will be populated by JavaScript -->
+        </div>
+      </div>
+    </div>
+
     <script>
       // Replace with your deployed Google Apps Script Web App URL
       const WEB_APP_URL =
@@ -720,6 +896,7 @@
       let currentPresentStudents = [];
       let currentAbsentStudents = [];
       let currentNoAttendanceStudents = [];
+      let currentRoomStaffInfo = {};
 
       // Tab switching functionality
       function switchTab(tabName) {
@@ -752,6 +929,7 @@
         currentPresentStudents = [];
         currentAbsentStudents = [];
         currentNoAttendanceStudents = [];
+        currentRoomStaffInfo = {};
       }
 
       // Show loading spinner
@@ -913,7 +1091,7 @@
               : 0;
 
           html += `
-      <div class="room-item">
+      <div class="room-item" onclick="showRoomDetails('${room}', '${staffName}')">
         <div class="room-number">Room ${room}</div>
         <div class="room-staff" style="font-size: 9px; color: #0f4c75; margin-bottom: 3px; font-weight: 500;">
           👨‍🏫 ${staffName}
@@ -937,7 +1115,100 @@
     </div>
   `;
 
+        // Store room staff info globally for modal use
+        currentRoomStaffInfo = roomStaffInfo;
+
         return html;
+      }
+
+      // Show room details in modal
+      function showRoomDetails(roomNumber, staffName) {
+        const modal = document.getElementById("roomModal");
+        const modalTitle = document.getElementById("modalRoomTitle");
+        const modalBody = document.getElementById("modalRoomBody");
+
+        // Filter students by room
+        const presentStudents = currentPresentStudents.filter(
+          (student) => student.room === roomNumber
+        );
+        const absentStudents = currentAbsentStudents.filter(
+          (student) => student.room === roomNumber
+        );
+
+        // Set modal title
+        modalTitle.textContent = `Room ${roomNumber} Details`;
+
+        // Build modal content
+        let html = `
+          <div class="modal-staff-info">
+            <strong>👨‍🏫 Staff:</strong> ${staffName || "Unknown Staff"}
+          </div>
+        `;
+
+        // Present students section
+        if (presentStudents.length > 0) {
+          html += `
+            <div class="modal-section">
+              <h4 class="modal-section-title present">Present Students (${presentStudents.length})</h4>
+              <div class="modal-student-list">
+          `;
+
+          presentStudents.forEach((student) => {
+            html += `
+              <div class="modal-student-card present">
+                <div class="modal-student-name">${student.name}</div>
+                <div class="modal-student-details">Reg: ${student.reg} | Class: ${student.class}</div>
+              </div>
+            `;
+          });
+
+          html += `
+              </div>
+            </div>
+          `;
+        }
+
+        // Absent students section
+        if (absentStudents.length > 0) {
+          html += `
+            <div class="modal-section">
+              <h4 class="modal-section-title absent">Absent Students (${absentStudents.length})</h4>
+              <div class="modal-student-list">
+          `;
+
+          absentStudents.forEach((student) => {
+            html += `
+              <div class="modal-student-card absent">
+                <div class="modal-student-name">${student.name}</div>
+                <div class="modal-student-details">Reg: ${student.reg} | Class: ${student.class}</div>
+              </div>
+            `;
+          });
+
+          html += `
+              </div>
+            </div>
+          `;
+        }
+
+        // No students case
+        if (presentStudents.length === 0 && absentStudents.length === 0) {
+          html += `
+            <div class="empty-state">
+              <div class="empty-icon">🔍</div>
+              <p>No students found for this room.</p>
+            </div>
+          `;
+        }
+
+        modalBody.innerHTML = html;
+        modal.classList.add("active");
+      }
+
+      // Close room modal
+      function closeRoomModal() {
+        const modal = document.getElementById("roomModal");
+        modal.classList.remove("active");
       }
 
       // Highlight search terms in text
@@ -1124,6 +1395,19 @@
         }
 
         searchInput.focus();
+      }
+
+      // Get yesterday's date in DD-MM-YYYY format
+      function getYesterdayDate() {
+        const today = new Date();
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+
+        const day = String(yesterday.getDate()).padStart(2, "0");
+        const month = String(yesterday.getMonth() + 1).padStart(2, "0");
+        const year = yesterday.getFullYear();
+
+        return `${day}-${month}-${year}`;
       }
 
       // Search attendance by date
@@ -1535,6 +1819,9 @@
 
       // Initialize the application
       document.addEventListener("DOMContentLoaded", function () {
+        // Set default date to yesterday
+        document.getElementById("dateInput").value = getYesterdayDate();
+
         // Set focus on date input
         document.getElementById("dateInput").focus();
 
@@ -1552,6 +1839,15 @@
           .addEventListener("keypress", function (e) {
             if (e.key === "Enter") {
               searchStudent();
+            }
+          });
+
+        // Close modal when clicking outside
+        document
+          .getElementById("roomModal")
+          .addEventListener("click", function (e) {
+            if (e.target === this) {
+              closeRoomModal();
             }
           });
 
