@@ -404,6 +404,8 @@
         color: #495057;
         font-size: 14px;
         margin-bottom: 3px;
+        cursor: pointer;
+        text-decoration: underline;
       }
 
       .student-details {
@@ -723,6 +725,8 @@
         font-size: 14px;
         color: #495057;
         margin-bottom: 3px;
+        cursor: pointer;
+        text-decoration: underline;
       }
 
       .modal-student-details {
@@ -882,6 +886,23 @@
           </button>
         </div>
         <div class="modal-body" id="modalRoomBody">
+          <!-- Content will be populated by JavaScript -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal for Student Attendance History -->
+    <div class="modal-overlay" id="studentModal">
+      <div class="modal">
+        <div class="modal-header">
+          <h3 class="modal-title" id="modalStudentTitle">
+            Student Attendance History
+          </h3>
+          <button class="modal-close" onclick="closeStudentModal()">
+            &times;
+          </button>
+        </div>
+        <div class="modal-body" id="modalStudentBody">
           <!-- Content will be populated by JavaScript -->
         </div>
       </div>
@@ -1137,6 +1158,7 @@
         const noAttendanceStudents = currentNoAttendanceStudents.filter(
           (student) => student.room === roomNumber
         );
+
         // Set modal title
         modalTitle.textContent = `Room ${roomNumber} Details`;
 
@@ -1158,7 +1180,7 @@
           presentStudents.forEach((student) => {
             html += `
               <div class="modal-student-card present">
-                <div class="modal-student-name">${student.name}</div>
+                <div class="modal-student-name" onclick="showStudentAttendanceHistory('${student.reg}', '${student.name}')">${student.name}</div>
                 <div class="modal-student-details">Reg: ${student.reg} | Class: ${student.class}</div>
               </div>
             `;
@@ -1181,7 +1203,30 @@
           absentStudents.forEach((student) => {
             html += `
               <div class="modal-student-card absent">
-                <div class="modal-student-name">${student.name}</div>
+                <div class="modal-student-name" onclick="showStudentAttendanceHistory('${student.reg}', '${student.name}')">${student.name}</div>
+                <div class="modal-student-details">Reg: ${student.reg} | Class: ${student.class}</div>
+              </div>
+            `;
+          });
+
+          html += `
+              </div>
+            </div>
+          `;
+        }
+
+        // No attendance students section
+        if (noAttendanceStudents.length > 0) {
+          html += `
+            <div class="modal-section">
+              <h4 class="modal-section-title no-attendance">Attendance Not Taken (${noAttendanceStudents.length})</h4>
+              <div class="modal-student-list">
+          `;
+
+          noAttendanceStudents.forEach((student) => {
+            html += `
+              <div class="modal-student-card no-attendance">
+                <div class="modal-student-name" onclick="showStudentAttendanceHistory('${student.reg}', '${student.name}')">${student.name}</div>
                 <div class="modal-student-details">Reg: ${student.reg} | Class: ${student.class}</div>
               </div>
             `;
@@ -1194,28 +1239,30 @@
         }
 
         // No students case
-        // No students case
-        if (presentStudents.length === 0 && absentStudents.length === 0) {
-          if (noAttendanceStudents.length > 0) {
-            html += `
-      <div class="empty-state">
-        <div class="empty-icon">❓</div>
-        <p>এই রুমের এটেন্ডেন্স কেও নেয়নি তবে</p>
-        <p><strong>এই রুমে মোট ছাত্র সংখ্যা:</strong> ${noAttendanceStudents.length}জন</p>
-      </div>
-    `;
-          } else {
-            html += `
-      <div class="empty-state">
-        <div class="empty-icon">🔍</div>
-        <p>No students found for this room.</p>
-      </div>
-    `;
-          }
+        if (
+          presentStudents.length === 0 &&
+          absentStudents.length === 0 &&
+          noAttendanceStudents.length === 0
+        ) {
+          html += `
+            <div class="empty-state">
+              <div class="empty-icon">🔍</div>
+              <p>No students found for this room.</p>
+            </div>
+          `;
+        } else if (
+          noAttendanceStudents.length > 0 &&
+          presentStudents.length === 0 &&
+          absentStudents.length === 0
+        ) {
+          html += `
+            <div class="empty-state">
+              <div class="empty-icon">❓</div>
+              <p>Attendance not taken for this room.</p>
+              <p><strong>Total students in room:</strong> ${noAttendanceStudents.length}</p>
+            </div>
+          `;
         }
-
-        modalBody.innerHTML = html;
-        modal.classList.add("active");
 
         modalBody.innerHTML = html;
         modal.classList.add("active");
@@ -1224,6 +1271,124 @@
       // Close room modal
       function closeRoomModal() {
         const modal = document.getElementById("roomModal");
+        modal.classList.remove("active");
+      }
+
+      // Show student attendance history
+      async function showStudentAttendanceHistory(regNumber, studentName) {
+        const modal = document.getElementById("studentModal");
+        const modalTitle = document.getElementById("modalStudentTitle");
+        const modalBody = document.getElementById("modalStudentBody");
+
+        modalTitle.textContent = `${studentName}'s Attendance History`;
+
+        // Show loading state
+        modalBody.innerHTML = `
+          <div class="loading">
+            <div class="loading-spinner"></div>
+            <p>Loading attendance history...</p>
+          </div>
+        `;
+
+        modal.classList.add("active");
+
+        try {
+          const response = await fetch(
+            `${WEB_APP_URL}?action=getStudentHistory&searchTerm=${encodeURIComponent(
+              regNumber
+            )}`
+          );
+
+          if (!response.ok)
+            throw new Error(`HTTP error! status: ${response.status}`);
+
+          const data = await response.json();
+
+          if (data.status === "error") {
+            modalBody.innerHTML = `
+              <div class="error">
+                <strong>❌ Error:</strong> ${data.message}
+              </div>
+            `;
+            return;
+          }
+
+          let html = `
+            <div class="info">
+              <strong>👤 Student:</strong> ${data.studentInfo.name}<br>
+              <strong>🆔 Registration:</strong> ${data.studentInfo.reg}<br>
+              <strong>🏠 Room:</strong> ${data.studentInfo.room}<br>
+              <strong>📚 Class:</strong> ${data.studentInfo.class}
+            </div>
+            
+            <div class="stats">
+              <div class="stat-item">
+                <div class="stat-number">${data.totalDays}</div>
+                <div class="stat-label">Total Days</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-number stat-present">${data.presentDays}</div>
+                <div class="stat-label">Present</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-number stat-absent">${data.absentDays}</div>
+                <div class="stat-label">Absent</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-number">${data.attendancePercentage}%</div>
+                <div class="stat-label">Attendance</div>
+              </div>
+            </div>
+          `;
+
+          if (data.attendanceHistory.length > 0) {
+            html += `
+              <h3 style="color: #0f4c75; margin-bottom: 15px; font-size: 16px;">📋 Attendance History</h3>
+              <div class="date-history">
+            `;
+
+            data.attendanceHistory.forEach((record) => {
+              html += `
+                <div class="date-item ${record.status}">
+                  <div class="date-info">
+                    <div class="date-text">${formatDate(record.date)}</div>
+                    <div class="staff-text">Staff: ${record.staffName}</div>
+                  </div>
+                  <span class="student-status ${
+                    record.status === "present"
+                      ? "status-present"
+                      : "status-absent"
+                  }">
+                    ${record.status === "present" ? "✓ Present" : "✗ Absent"}
+                  </span>
+                </div>
+              `;
+            });
+
+            html += "</div>";
+          } else {
+            html += `
+              <div class="empty-state">
+                <div class="empty-icon">🔭</div>
+                <p>No attendance history found for this student.</p>
+              </div>
+            `;
+          }
+
+          modalBody.innerHTML = html;
+        } catch (error) {
+          console.error("Error fetching student history:", error);
+          modalBody.innerHTML = `
+            <div class="error">
+              <strong>❌ Error:</strong> Failed to fetch student attendance history. Please try again.
+            </div>
+          `;
+        }
+      }
+
+      // Close student modal
+      function closeStudentModal() {
+        const modal = document.getElementById("studentModal");
         modal.classList.remove("active");
       }
 
@@ -1496,7 +1661,7 @@
         let html = `
           <div class="info">
             <strong>📅 Date:</strong> ${formatDate(data.date)}<br>
-            
+            <strong>👨‍🏫 Staff:</strong> ${data.staffName || "Unknown"}
           </div>
           
           <div class="stats">
@@ -1557,7 +1722,7 @@
           data.presentStudents.forEach((student) => {
             html += `
               <div class="student-card present">
-                <div class="student-name">${student.name}</div>
+                <div class="student-name" onclick="showStudentAttendanceHistory('${student.reg}', '${student.name}')">${student.name}</div>
                 <div class="student-details">Reg: ${student.reg} | Room: ${student.room} | Class: ${student.class}</div>
                 <span class="student-status status-present">✓ Present</span>
               </div>
@@ -1586,7 +1751,7 @@
           data.absentStudents.forEach((student) => {
             html += `
               <div class="student-card absent">
-                <div class="student-name">${student.name}</div>
+                <div class="student-name" onclick="showStudentAttendanceHistory('${student.reg}', '${student.name}')">${student.name}</div>
                 <div class="student-details">Reg: ${student.reg} | Room: ${student.room} | Class: ${student.class}</div>
                 <span class="student-status status-absent">✗ Absent</span>
               </div>
@@ -1596,7 +1761,7 @@
           html += "</div>";
         }
 
-        // ✅ NEW: No Attendance Students Section
+        // No Attendance Students Section
         if (data.noAttendanceStudents && data.noAttendanceStudents.length > 0) {
           html += `
             <div class="section-header">
@@ -1615,7 +1780,7 @@
           data.noAttendanceStudents.forEach((student) => {
             html += `
               <div class="student-card no-attendance">
-                <div class="student-name">${student.name}</div>
+                <div class="student-name" onclick="showStudentAttendanceHistory('${student.reg}', '${student.name}')">${student.name}</div>
                 <div class="student-details">Reg: ${student.reg} | Room: ${student.room} | Class: ${student.class}</div>
                 <span class="student-status status-no-attendance">? No Data</span>
               </div>
@@ -1858,12 +2023,20 @@
             }
           });
 
-        // Close modal when clicking outside
+        // Close modals when clicking outside
         document
           .getElementById("roomModal")
           .addEventListener("click", function (e) {
             if (e.target === this) {
               closeRoomModal();
+            }
+          });
+
+        document
+          .getElementById("studentModal")
+          .addEventListener("click", function (e) {
+            if (e.target === this) {
+              closeStudentModal();
             }
           });
 
