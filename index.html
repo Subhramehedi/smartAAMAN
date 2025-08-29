@@ -1899,14 +1899,14 @@
               return {
                 messageId: pinnedMessage.message_id,
                 text: pinnedMessage.text,
-                isForToday: true,
+                isForCurrentDate: true,
               };
             } else {
-              // Pinned message exists but for different date
+              // Pinned message exists but for different date - leave it pinned
               return {
                 messageId: null,
                 text: null,
-                isForToday: false,
+                isForCurrentDate: false,
               };
             }
           }
