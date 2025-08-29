@@ -2142,7 +2142,21 @@
           console.error("Error updating class-wise report:", error);
         }
       }
+      async function unpinTelegramMessage() {
+        const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/unpinChatMessage`;
 
+        const response = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            chat_id: TELEGRAM_CHAT_ID,
+          }),
+        });
+
+        return response.json();
+      }
       // Enhanced parseExistingFloorData to maintain floor data structure
       function parseExistingFloorDataWithClasses(messageText) {
         const existingFloorData = {};
