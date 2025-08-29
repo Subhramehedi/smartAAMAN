@@ -1891,7 +1891,7 @@
             const pinnedMessage = result.result.pinned_message;
             const currentDate = serverDate; // Use server date
 
-            // Check if pinned message is for the current date
+            // ✅ FIXED: Check if pinned message is for the current date
             if (
               pinnedMessage.text &&
               pinnedMessage.text.includes(`📅 ${currentDate}`)
@@ -1899,14 +1899,14 @@
               return {
                 messageId: pinnedMessage.message_id,
                 text: pinnedMessage.text,
-                isForCurrentDate: true,
+                isForToday: true, // ✅ FIXED: More descriptive property name
               };
             } else {
-              // Pinned message exists but for different date - leave it pinned
+              // Pinned message exists but for different date
               return {
-                messageId: null,
-                text: null,
-                isForCurrentDate: false,
+                messageId: pinnedMessage.message_id,
+                text: pinnedMessage.text,
+                isForToday: false, // Different date
               };
             }
           }
@@ -1984,18 +1984,23 @@
 
           // Get existing pinned message and check if it's for current date
           const existingReport = await getTodaysClassReport();
-          let existingFloorData = {}; // Track floor-wise data
+          let existingFloorData = {};
           let shouldCreateNewMessage = true;
           let messageIdToUpdate = null;
 
           if (existingReport) {
-            if (existingReport.isForToday) {
-              // Pinned message is for today - update it
+            // Check if pinned message is for TODAY (using server date)
+            if (
+              existingReport.text &&
+              existingReport.text.includes(`📅 ${serverDate}`)
+            ) {
+              // ✅ FIXED: Pinned message is for today - UPDATE it, don't create new
               shouldCreateNewMessage = false;
               messageIdToUpdate = existingReport.messageId;
               existingFloorData = parseExistingFloorData(existingReport.text);
+              console.log("Found existing report for today, will update it");
             } else {
-              // Pinned message is for different date - unpin it first, then create new
+              // ❌ Pinned message is for different date - unpin it first, then create new
               try {
                 await unpinTelegramMessage();
                 console.log("Unpinned old message for different date");
@@ -2033,7 +2038,7 @@
             percentage: ((floorPresent / floorTotal) * 100).toFixed(1),
             completedBy: staffName,
             completedAt: new Date().toLocaleTimeString("bn-BD"),
-            classes: { ...classWiseData }, // Store class breakdown for this floor
+            classes: { ...classWiseData },
           };
 
           // REBUILD class data by aggregating from all floors
@@ -2042,7 +2047,6 @@
           Object.keys(existingFloorData).forEach((floorName) => {
             const floorData = existingFloorData[floorName];
 
-            // If this floor has class breakdown data, use it
             if (floorData.classes) {
               Object.keys(floorData.classes).forEach((className) => {
                 const classData = floorData.classes[className];
@@ -2056,7 +2060,6 @@
                   };
                 }
 
-                // Add this floor's contribution to the class
                 mergedClassData[className].total += classData.total;
                 mergedClassData[className].present += classData.present;
                 mergedClassData[className].absent += classData.absent;
@@ -2066,7 +2069,7 @@
           });
 
           // Create updated message
-          const today = serverDate; // Use server date
+          const today = serverDate;
           const todayBangla = new Date().toLocaleDateString("bn-BD", {
             weekday: "long",
             year: "numeric",
@@ -2126,17 +2129,25 @@
             "bn-BD"
           )}\n`;
 
+          // ✅ FIXED: Proper message handling based on shouldCreateNewMessage flag
           if (shouldCreateNewMessage) {
             // Send new message and pin it
+            console.log("Creating new message for date:", serverDate);
             const sendResult = await sendTelegramMessage(reportMessage);
             if (sendResult && sendResult.ok) {
               await pinTelegramMessage(sendResult.result.message_id);
-              console.log(`Created and pinned new message for date: ${today}`);
+              console.log(
+                `Created and pinned new message for date: ${serverDate}`
+              );
             }
           } else {
-            // Update existing pinned message for today
+            // ✅ FIXED: Update existing pinned message for today (NO new pinning)
+            console.log("Updating existing message for date:", serverDate);
             await editTelegramMessage(messageIdToUpdate, reportMessage);
-            console.log(`Updated existing pinned message for date: ${today}`);
+            console.log(
+              `Updated existing pinned message for date: ${serverDate}`
+            );
+            // ❌ REMOVED: No pinning here since message is already pinned
           }
         } catch (error) {
           console.error("Error updating class-wise report:", error);
