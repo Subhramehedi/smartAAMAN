@@ -1317,8 +1317,8 @@
 
       // Telegram Bot Configuration
       const TELEGRAM_BOT_TOKEN =
-        "7943273526:AAF3obKo6jlMXLZmdHbJvrNrDoaogVGJRq0";
-      const TELEGRAM_CHAT_ID = "-4814783764";
+        "8427001544:AAFmCK6AVOwJzcSz8nA15GGwv4Jo3W6m9F4";
+      const TELEGRAM_CHAT_ID = "-1003034690897";
       const staffCredentials = {
         staff01: { name: "Subhra Mehedi", password: "8597111396" },
         staff02: { name: "Saddam Khan", password: "7548976846" },
@@ -1889,27 +1889,35 @@
 
           if (result.ok && result.result.pinned_message) {
             const pinnedMessage = result.result.pinned_message;
-            const today = serverDate; // Use server date
+            const currentDate = serverDate; // Use server date
 
-            // Check if pinned message is for today
+            // Check if pinned message is for the current date
             if (
               pinnedMessage.text &&
-              pinnedMessage.text.includes(`📅 ${today}`)
+              pinnedMessage.text.includes(`📅 ${currentDate}`)
             ) {
               return {
                 messageId: pinnedMessage.message_id,
                 text: pinnedMessage.text,
+                isForToday: true,
+              };
+            } else {
+              // Pinned message exists but for different date
+              return {
+                messageId: null,
+                text: null,
+                isForToday: false,
               };
             }
           }
 
+          // No pinned message exists
           return null;
         } catch (error) {
           console.error("Error getting today's report:", error);
           return null;
         }
       }
-
       // Parse existing class data from pinned message
       function parseExistingClassData(messageText) {
         const existingData = {};
@@ -1974,15 +1982,28 @@
           // Calculate current floor's class-wise data
           calculateClassWiseData();
 
-          // Get existing pinned message for today
+          // Get existing pinned message and check if it's for current date
           const existingReport = await getTodaysClassReport();
           let existingFloorData = {}; // Track floor-wise data
-          let existingClassData = {}; // Track existing class-wise data
+          let shouldCreateNewMessage = true;
+          let messageIdToUpdate = null;
 
           if (existingReport) {
-            // Parse existing floor data and class data
-            existingFloorData = parseExistingFloorData(existingReport.text);
-            existingClassData = parseExistingClassData(existingReport.text);
+            if (existingReport.isForToday) {
+              // Pinned message is for today - update it
+              shouldCreateNewMessage = false;
+              messageIdToUpdate = existingReport.messageId;
+              existingFloorData = parseExistingFloorData(existingReport.text);
+            } else {
+              // Pinned message is for different date - unpin it first, then create new
+              try {
+                await unpinTelegramMessage();
+                console.log("Unpinned old message for different date");
+              } catch (error) {
+                console.error("Error unpinning old message:", error);
+              }
+              shouldCreateNewMessage = true;
+            }
           }
 
           // Get current floor label
@@ -2003,18 +2024,6 @@
               });
             }
           });
-
-          // Check if current floor already exists in floor data
-          const currentFloorExists =
-            existingFloorData.hasOwnProperty(currentFloorLabel);
-
-          if (currentFloorExists) {
-            console.log(
-              `Floor ${currentFloorLabel} already exists. Updating...`
-            );
-          } else {
-            console.log(`Floor ${currentFloorLabel} is new. Adding...`);
-          }
 
           // Update/Add current floor's data in existingFloorData
           existingFloorData[currentFloorLabel] = {
@@ -2057,7 +2066,7 @@
           });
 
           // Create updated message
-          const today = serverDate;
+          const today = serverDate; // Use server date
           const todayBangla = new Date().toLocaleDateString("bn-BD", {
             weekday: "long",
             year: "numeric",
@@ -2078,12 +2087,11 @@
             reportMessage += `📚 ${className}: ${data.present}/${data.total} (${data.absent} অনুপস্থিত) - ${percentage}% ${status}\n`;
           });
 
-          // Calculate overall statistics by reading from all floors in pinned message
+          // Calculate overall statistics from floor data
           let totalStudentsFromFloors = 0;
           let totalPresentFromFloors = 0;
           let totalAbsentFromFloors = 0;
 
-          // Calculate totals from floor data (not class data)
           Object.keys(existingFloorData).forEach((floorName) => {
             const floorData = existingFloorData[floorName];
             totalStudentsFromFloors += floorData.total;
@@ -2118,15 +2126,17 @@
             "bn-BD"
           )}\n`;
 
-          if (existingReport) {
-            // Update existing pinned message
-            await editTelegramMessage(existingReport.messageId, reportMessage);
-          } else {
+          if (shouldCreateNewMessage) {
             // Send new message and pin it
             const sendResult = await sendTelegramMessage(reportMessage);
             if (sendResult && sendResult.ok) {
               await pinTelegramMessage(sendResult.result.message_id);
+              console.log(`Created and pinned new message for date: ${today}`);
             }
+          } else {
+            // Update existing pinned message for today
+            await editTelegramMessage(messageIdToUpdate, reportMessage);
+            console.log(`Updated existing pinned message for date: ${today}`);
           }
         } catch (error) {
           console.error("Error updating class-wise report:", error);
