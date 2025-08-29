@@ -1183,6 +1183,9 @@
     <!-- --- END NEW: Loading Overlay HTML (Modified) --- -->
 
     <script>
+      let floorWiseAttendance = {}; // Add this near other global variables
+      let classWiseData = {};
+      let dailyClassReport = {};
       let staffLocation = {
         lat: null,
         lon: null,
@@ -1316,7 +1319,6 @@
       const TELEGRAM_BOT_TOKEN =
         "7943273526:AAF3obKo6jlMXLZmdHbJvrNrDoaogVGJRq0";
       const TELEGRAM_CHAT_ID = "-4814783764";
-
       const staffCredentials = {
         staff01: { name: "Subhra Mehedi", password: "8597111396" },
         staff02: { name: "Saddam Khan", password: "7548976846" },
@@ -1563,6 +1565,7 @@
           alert("কোনো ছবি নেওয়া হয়নি!");
           return;
         }
+        await updateClassWiseReport();
         const loadingOverlay = document.getElementById("loadingOverlay");
         const submitBtn = document.getElementById("submitBtn");
         const cameraModal = document.getElementById("cameraModal");
@@ -1834,6 +1837,459 @@
             });
           }
         });
+      }
+
+      function calculateClassWiseData() {
+        classWiseData = {};
+
+        floorRooms.forEach((room) => {
+          if (studentsData[room]) {
+            studentsData[room].forEach((student) => {
+              const className = student.class;
+              const status = attendance[student.reg] || "present";
+
+              if (!classWiseData[className]) {
+                classWiseData[className] = {
+                  total: 0,
+                  present: 0,
+                  absent: 0,
+                  attendanceTaken: false,
+                };
+              }
+
+              classWiseData[className].total++;
+              classWiseData[className].attendanceTaken = true;
+
+              if (status === "present") {
+                classWiseData[className].present++;
+              } else {
+                classWiseData[className].absent++;
+              }
+            });
+          }
+        });
+      }
+
+      // Get existing pinned message for today
+      async function getTodaysClassReport() {
+        try {
+          const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getChat`;
+
+          const response = await fetch(url, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              chat_id: TELEGRAM_CHAT_ID,
+            }),
+          });
+
+          const result = await response.json();
+
+          if (result.ok && result.result.pinned_message) {
+            const pinnedMessage = result.result.pinned_message;
+            const today = serverDate; // Use server date
+
+            // Check if pinned message is for today
+            if (
+              pinnedMessage.text &&
+              pinnedMessage.text.includes(`📅 ${today}`)
+            ) {
+              return {
+                messageId: pinnedMessage.message_id,
+                text: pinnedMessage.text,
+              };
+            }
+          }
+
+          return null;
+        } catch (error) {
+          console.error("Error getting today's report:", error);
+          return null;
+        }
+      }
+
+      // Parse existing class data from pinned message
+      function parseExistingClassData(messageText) {
+        const existingData = {};
+
+        // Extract class-wise data using regex
+        const classPattern =
+          /📚 (.+?):\s*(\d+)\/(\d+)\s*\((\d+)\s*অনুপস্থিত\)/g;
+        let match;
+
+        while ((match = classPattern.exec(messageText)) !== null) {
+          const className = match[1];
+          const present = parseInt(match[2]);
+          const total = parseInt(match[3]);
+          const absent = parseInt(match[4]);
+
+          existingData[className] = {
+            total: total,
+            present: present,
+            absent: absent,
+            attendanceTaken: true,
+          };
+        }
+
+        return existingData;
+      }
+
+      // NEW: Parse existing floor data from pinned message
+      function parseExistingFloorData(messageText) {
+        const existingFloorData = {};
+
+        // Extract floor-wise data using regex
+        // Pattern to match: 🔹 Floor Name: 👥 present/total (percentage%) 👨‍🏫 Staff - Time
+        const floorPattern =
+          /🔹\s*(.+?):\s*👥\s*(\d+)\/(\d+)\s*\((\d+\.?\d*)%\)\s*👨‍🏫\s*(.+?)\s*-\s*(.+)/g;
+        let match;
+
+        while ((match = floorPattern.exec(messageText)) !== null) {
+          const floorName = match[1].trim();
+          const present = parseInt(match[2]);
+          const total = parseInt(match[3]);
+          const percentage = match[4];
+          const staffName = match[5].trim();
+          const time = match[6].trim();
+
+          existingFloorData[floorName] = {
+            total: total,
+            present: present,
+            absent: total - present,
+            percentage: percentage,
+            completedBy: staffName,
+            completedAt: time,
+          };
+        }
+
+        return existingFloorData;
+      }
+      // Update class-wise attendance report (MODIFIED for accumulative data)
+      // Update class-wise attendance report (FIXED for duplicate floor entries)
+      // Update class-wise attendance report (FIXED for proper floor-wise data management)
+      async function updateClassWiseReport() {
+        try {
+          // Calculate current floor's class-wise data
+          calculateClassWiseData();
+
+          // Get existing pinned message for today
+          const existingReport = await getTodaysClassReport();
+          let existingFloorData = {}; // Track floor-wise data
+          let existingClassData = {}; // Track existing class-wise data
+
+          if (existingReport) {
+            // Parse existing floor data and class data
+            existingFloorData = parseExistingFloorData(existingReport.text);
+            existingClassData = parseExistingClassData(existingReport.text);
+          }
+
+          // Get current floor label
+          const floorSelect = document.getElementById("floorSelect");
+          const currentFloorLabel =
+            floorSelect.options[floorSelect.selectedIndex].text;
+
+          // Calculate current floor statistics
+          let floorTotal = 0;
+          let floorPresent = 0;
+          floorRooms.forEach((room) => {
+            if (studentsData[room]) {
+              studentsData[room].forEach((student) => {
+                floorTotal++;
+                if (attendance[student.reg] === "present") {
+                  floorPresent++;
+                }
+              });
+            }
+          });
+
+          // Check if current floor already exists in floor data
+          const currentFloorExists =
+            existingFloorData.hasOwnProperty(currentFloorLabel);
+
+          if (currentFloorExists) {
+            console.log(
+              `Floor ${currentFloorLabel} already exists. Updating...`
+            );
+          } else {
+            console.log(`Floor ${currentFloorLabel} is new. Adding...`);
+          }
+
+          // Update/Add current floor's data in existingFloorData
+          existingFloorData[currentFloorLabel] = {
+            total: floorTotal,
+            present: floorPresent,
+            absent: floorTotal - floorPresent,
+            percentage: ((floorPresent / floorTotal) * 100).toFixed(1),
+            completedBy: staffName,
+            completedAt: new Date().toLocaleTimeString("bn-BD"),
+            classes: { ...classWiseData }, // Store class breakdown for this floor
+          };
+
+          // REBUILD class data by aggregating from all floors
+          let mergedClassData = {};
+
+          Object.keys(existingFloorData).forEach((floorName) => {
+            const floorData = existingFloorData[floorName];
+
+            // If this floor has class breakdown data, use it
+            if (floorData.classes) {
+              Object.keys(floorData.classes).forEach((className) => {
+                const classData = floorData.classes[className];
+
+                if (!mergedClassData[className]) {
+                  mergedClassData[className] = {
+                    total: 0,
+                    present: 0,
+                    absent: 0,
+                    attendanceTaken: false,
+                  };
+                }
+
+                // Add this floor's contribution to the class
+                mergedClassData[className].total += classData.total;
+                mergedClassData[className].present += classData.present;
+                mergedClassData[className].absent += classData.absent;
+                mergedClassData[className].attendanceTaken = true;
+              });
+            }
+          });
+
+          // Create updated message
+          const today = serverDate;
+          const todayBangla = new Date().toLocaleDateString("bn-BD", {
+            weekday: "long",
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          });
+
+          let reportMessage = `📅 ${today}\n🗓️ ${todayBangla}\n\n📊 আজকের ক্লাসওয়াইজ হাজিরা রিপোর্ট:\n\n`;
+
+          // Sort classes and add to message
+          const sortedClasses = Object.keys(mergedClassData).sort();
+          sortedClasses.forEach((className) => {
+            const data = mergedClassData[className];
+            const percentage = ((data.present / data.total) * 100).toFixed(1);
+            const status = data.attendanceTaken
+              ? "✅ নেওয়া হয়েছে"
+              : "⏳ বাকি";
+            reportMessage += `📚 ${className}: ${data.present}/${data.total} (${data.absent} অনুপস্থিত) - ${percentage}% ${status}\n`;
+          });
+
+          // Calculate overall statistics by reading from all floors in pinned message
+          let totalStudentsFromFloors = 0;
+          let totalPresentFromFloors = 0;
+          let totalAbsentFromFloors = 0;
+
+          // Calculate totals from floor data (not class data)
+          Object.keys(existingFloorData).forEach((floorName) => {
+            const floorData = existingFloorData[floorName];
+            totalStudentsFromFloors += floorData.total;
+            totalPresentFromFloors += floorData.present;
+            totalAbsentFromFloors += floorData.absent;
+          });
+
+          const overallPercentage =
+            totalStudentsFromFloors > 0
+              ? (
+                  (totalPresentFromFloors / totalStudentsFromFloors) *
+                  100
+                ).toFixed(1)
+              : "0.0";
+
+          reportMessage += `\n📈 সামগ্রিক পরিসংখ্যান:\n`;
+          reportMessage += `👥 মোট শিক্ষার্থী: ${totalStudentsFromFloors} জন\n`;
+          reportMessage += `✅ হাজির: ${totalPresentFromFloors} জন\n`;
+          reportMessage += `❌ অনুপস্থিত: ${totalAbsentFromFloors} জন\n`;
+          reportMessage += `📊 হাজিরার হার: ${overallPercentage}%\n\n`;
+
+          // Add floor-wise breakdown
+          reportMessage += `🏢 ফ্লোরওয়াইজ রিপোর্ট:\n`;
+          Object.keys(existingFloorData).forEach((floorName) => {
+            const floorData = existingFloorData[floorName];
+            reportMessage += `🔹 ${floorName}:\n`;
+            reportMessage += `   👥 ${floorData.present}/${floorData.total} (${floorData.percentage}%)\n`;
+            reportMessage += `   👨‍🏫 ${floorData.completedBy} - ${floorData.completedAt}\n\n`;
+          });
+
+          reportMessage += `🕐 সর্বশেষ আপডেট: ${new Date().toLocaleTimeString(
+            "bn-BD"
+          )}\n`;
+
+          if (existingReport) {
+            // Update existing pinned message
+            await editTelegramMessage(existingReport.messageId, reportMessage);
+          } else {
+            // Send new message and pin it
+            const sendResult = await sendTelegramMessage(reportMessage);
+            if (sendResult && sendResult.ok) {
+              await pinTelegramMessage(sendResult.result.message_id);
+            }
+          }
+        } catch (error) {
+          console.error("Error updating class-wise report:", error);
+        }
+      }
+
+      // Enhanced parseExistingFloorData to maintain floor data structure
+      function parseExistingFloorDataWithClasses(messageText) {
+        const existingFloorData = {};
+
+        // Extract floor-wise data using regex
+        const floorPattern =
+          /🔹\s*(.+?):\s*👥\s*(\d+)\/(\d+)\s*\((\d+\.?\d*)%\)\s*👨‍🏫\s*(.+?)\s*-\s*(.+?)(?=\n\n|\n🔹|$)/g;
+        let match;
+
+        while ((match = floorPattern.exec(messageText)) !== null) {
+          const floorName = match[1].trim();
+          const present = parseInt(match[2]);
+          const total = parseInt(match[3]);
+          const percentage = match[4];
+          const staffName = match[5].trim();
+          const time = match[6].trim();
+
+          existingFloorData[floorName] = {
+            total: total,
+            present: present,
+            absent: total - present,
+            percentage: percentage,
+            completedBy: staffName,
+            completedAt: time,
+            classes: {}, // Initialize empty classes object
+          };
+        }
+
+        // Try to extract class data from the class-wise section and map to floors
+        // This is complex because the message doesn't store which floor each class belongs to
+        // We'll use the existing class parsing for now
+        const existingClassData = parseExistingClassData(messageText);
+
+        // For now, we can't reliably map classes back to floors from the message
+        // This is a limitation of the current message format
+        // The classes will be rebuilt from the current submission and existing floor data
+
+        return existingFloorData;
+      }
+
+      // Helper function to extract class-wise attendance data with floor mapping
+      function extractClassDataFromFloors(floorData) {
+        const classData = {};
+
+        Object.keys(floorData).forEach((floorName) => {
+          const floor = floorData[floorName];
+          if (floor.classes) {
+            Object.keys(floor.classes).forEach((className) => {
+              if (!classData[className]) {
+                classData[className] = {
+                  total: 0,
+                  present: 0,
+                  absent: 0,
+                  attendanceTaken: false,
+                  floors: [],
+                };
+              }
+
+              const classInfo = floor.classes[className];
+              classData[className].total += classInfo.total;
+              classData[className].present += classInfo.present;
+              classData[className].absent += classInfo.absent;
+              classData[className].attendanceTaken = true;
+              classData[className].floors.push(floorName);
+            });
+          }
+        });
+
+        return classData;
+      }
+      // HELPER: Enhanced parseExistingFloorData to include class breakdown
+      function parseExistingFloorData(messageText) {
+        const existingFloorData = {};
+
+        // Extract floor-wise data using regex
+        const floorPattern =
+          /🔹\s*(.+?):\s*👥\s*(\d+)\/(\d+)\s*\((\d+\.?\d*)%\)\s*👨‍🏫\s*(.+?)\s*-\s*(.+)/g;
+        let match;
+
+        while ((match = floorPattern.exec(messageText)) !== null) {
+          const floorName = match[1].trim();
+          const present = parseInt(match[2]);
+          const total = parseInt(match[3]);
+          const percentage = match[4];
+          const staffName = match[5].trim();
+          const time = match[6].trim();
+
+          existingFloorData[floorName] = {
+            total: total,
+            present: present,
+            absent: total - present,
+            percentage: percentage,
+            completedBy: staffName,
+            completedAt: time,
+            classes: {}, // Initialize empty classes object for future use
+          };
+        }
+
+        return existingFloorData;
+      }
+
+      // Send message to Telegram
+      async function sendTelegramMessage(text) {
+        const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+
+        const response = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            chat_id: TELEGRAM_CHAT_ID,
+            text: text,
+            parse_mode: "HTML",
+          }),
+        });
+
+        return response.json();
+      }
+
+      // Edit existing Telegram message
+      async function editTelegramMessage(messageId, text) {
+        const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/editMessageText`;
+
+        const response = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            chat_id: TELEGRAM_CHAT_ID,
+            message_id: messageId,
+            text: text,
+            parse_mode: "HTML",
+          }),
+        });
+
+        return response.json();
+      }
+
+      // Pin Telegram message
+      async function pinTelegramMessage(messageId) {
+        const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/pinChatMessage`;
+
+        const response = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            chat_id: TELEGRAM_CHAT_ID,
+            message_id: messageId,
+            disable_notification: false,
+          }),
+        });
+
+        return response.json();
       }
 
       // Initialize date selectors (now displays current date from server)
